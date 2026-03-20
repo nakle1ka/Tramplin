@@ -1,0 +1,36 @@
+package model
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
+
+type VerificationStatus int
+
+const (
+	StatusPending VerificationStatus = iota
+	StatusVerified
+	StatusRejected
+)
+
+type Employer struct {
+	ID     uuid.UUID `gorm:"type:uuid;primaryKey;column:id"`
+	UserID uuid.UUID `gorm:"type:uuid;unique;notNull;column:user_id"`
+	User   User      `gorm:"foreignKey:UserID;references:ID"`
+
+	CompanyName    string             `gorm:"type:varchar(150);notNull;column:company_name"`
+	INN            string             `gorm:"type:varchar(12);notNull;column:inn"`
+	Description    string             `gorm:"type:text;column:description"`
+	Website        string             `gorm:"type:varchar(100);column:website"`
+	VerifiedStatus VerificationStatus `gorm:"type:smallint;default:0;column:verified_status"`
+
+	CreatedAt time.Time `gorm:"autoCreateTime;column:created_at"`
+	UpdatedAt time.Time `gorm:"autoUpdateTime;column:updated_at"`
+}
+
+func (e *Employer) BeforeCreate(tx *gorm.DB) error {
+	e.ID = uuid.New()
+	return nil
+}
