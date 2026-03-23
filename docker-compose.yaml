@@ -9,8 +9,20 @@ services:
         condition: service_healthy
       tramplin_redis:
         condition: service_healthy
+      tramplin_init:
+        condition: service_completed_successfully
     ports:
       - "${APP_PORT}:${APP_PORT}"
+
+  tramplin_init:
+    build: .
+    container_name: tramplin_init
+    command: ./seed
+    depends_on:
+      tramplin_postgres:
+        condition: service_healthy
+    env_file:
+      - .env
   
   tramplin_postgres:
     image: postgres

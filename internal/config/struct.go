@@ -20,6 +20,9 @@ type Database struct {
 	Password string `mapstructure:"DB_PASSWORD"`
 	Name     string `mapstructure:"DB_NAME"`
 	SSLMode  bool   `mapstructure:"DB_SSL_MODE"`
+
+	SuperAdminEmail    string `mapstructure:"DB_SUPERADMIN_LOGIN"`
+	SuperAdminPassword string `mapstructure:"DB_SUPERADMIN_PASSWORD"`
 }
 
 type Redis struct {

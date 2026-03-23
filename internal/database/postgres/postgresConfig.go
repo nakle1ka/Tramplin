@@ -7,6 +7,9 @@ type PostgresConfig struct {
 	DBname   string
 	Port     int
 	Sslmode  bool
+
+	SuperAdminEmail    string
+	SuperAdminPassword string
 }
 
 type opt = func(p *PostgresConfig)

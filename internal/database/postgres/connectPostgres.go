@@ -3,7 +3,6 @@ package postgres
 import (
 	"fmt"
 
-	"github.com/nakle1ka/Tramplin/internal/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -15,15 +14,9 @@ func NewPostgresDB(opts ...opt) (*gorm.DB, error) {
 		opt(&postgesCfg)
 	}
 
-	if postgesCfg.User == "" || postgesCfg.Password == "" || postgesCfg.DBname == "" {
-		return nil, fmt.Errorf("postgres: invalid configuration")
-	}
-
-	var sslmode string
+	sslmode := "dasable"
 	if postgesCfg.Sslmode {
 		sslmode = "prefer"
-	} else {
-		sslmode = "disable"
 	}
 
 	dsn := fmt.Sprintf(
@@ -44,12 +37,5 @@ func NewPostgresDB(opts ...opt) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	migrationErr := postges.AutoMigrate(
-		&model.User{},
-		&model.Applicant{},
-		&model.Employer{},
-		&model.Curator{},
-	)
-
-	return postges, migrationErr
+	return postges, nil
 }
