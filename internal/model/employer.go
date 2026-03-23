@@ -16,12 +16,12 @@ const (
 )
 
 type Employer struct {
-	ID     uuid.UUID `gorm:"type:uuid;primaryKey;column:id"`
-	UserID uuid.UUID `gorm:"type:uuid;unique;notNull;column:user_id"`
+	ID     uuid.UUID `gorm:"primaryKey;column:id"`
+	UserID uuid.UUID `gorm:"uniqueIndex;not null;column:user_id"`
 	User   User      `gorm:"foreignKey:UserID;references:ID"`
 
-	CompanyName    string             `gorm:"type:varchar(150);notNull;column:company_name"`
-	INN            string             `gorm:"type:varchar(12);notNull;column:inn"`
+	CompanyName    string             `gorm:"type:varchar(150);not null;column:company_name"`
+	INN            string             `gorm:"type:varchar(12);not null;column:inn"`
 	Description    string             `gorm:"type:text;column:description"`
 	Website        string             `gorm:"type:varchar(100);column:website"`
 	VerifiedStatus VerificationStatus `gorm:"type:smallint;default:0;column:verified_status"`

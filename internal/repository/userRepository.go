@@ -15,7 +15,7 @@ type UserRepository interface {
 	Create(ctx context.Context, user *User) error
 	GetByID(ctx context.Context, id uuid.UUID) (*User, error)
 	GetByEmail(ctx context.Context, email string) (*User, error)
-	Update(ctx context.Context, user *User) error
+	SetVerify(ctx context.Context, id uuid.UUID, value bool) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -62,8 +62,11 @@ func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*User, erro
 	return &user, nil
 }
 
-func (r *userRepository) Update(ctx context.Context, user *User) error {
-	return r.getDB(ctx).Save(user).Error
+func (r *userRepository) SetVerify(ctx context.Context, id uuid.UUID, value bool) error {
+	return r.getDB(ctx).
+		Model(&User{}).
+		Where("id = ?", id).
+		Update("is_verified", value).Error
 }
 
 func (r *userRepository) Delete(ctx context.Context, id uuid.UUID) error {

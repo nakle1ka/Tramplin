@@ -13,4 +13,6 @@ var (
 	ErrUserNotFound       = errors.New("user not found")
 	ErrEmailExists        = errors.New("user with this email already exists")
 	ErrInvalidEmployerINN = errors.New("invalid employer INN")
+	ErrApplicantNotFound  = errors.New("applicant not found")
+	ErrInvalidInput       = errors.New("invalid input")
 )

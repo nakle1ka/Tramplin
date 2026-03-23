@@ -9,6 +9,7 @@ import (
 	"github.com/nakle1ka/Tramplin/internal/dto"
 	"github.com/nakle1ka/Tramplin/internal/model"
 	"github.com/nakle1ka/Tramplin/internal/service"
+	"gorm.io/gorm"
 )
 
 type AuthHandler struct {
@@ -47,7 +48,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	if err != nil {
 		slog.Error("failed to register user", "error", err, "email", req.Email)
 		switch {
-		case errors.Is(err, service.ErrEmailExists):
+		case errors.Is(err, gorm.ErrDuplicatedKey):
 			c.JSON(http.StatusConflict, gin.H{"error": "email already exists"})
 		case errors.Is(err, service.ErrInvalidEmployerINN):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid employer INN"})

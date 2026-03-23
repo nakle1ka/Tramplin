@@ -9,14 +9,17 @@ import (
 	"gorm.io/gorm"
 )
 
-type Applicant = model.Applicant
-
 type ApplicantRepository interface {
-	Create(ctx context.Context, applicant *Applicant) error
-	GetByID(ctx context.Context, id uuid.UUID) (*Applicant, error)
-	GetByUserID(ctx context.Context, userID uuid.UUID) (*Applicant, error)
-	Update(ctx context.Context, applicant *Applicant) error
+	Create(ctx context.Context, applicant *model.Applicant) error
+	GetByID(ctx context.Context, id uuid.UUID) (*model.Applicant, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID) (*model.Applicant, error)
+	Update(ctx context.Context, id uuid.UUID, applicant map[string]any) error
 	Delete(ctx context.Context, id uuid.UUID) error
+
+	AddTags(ctx context.Context, applicantID uuid.UUID, tagIDs []uuid.UUID) error
+	RemoveTags(ctx context.Context, applicantID uuid.UUID, tagIDs []uuid.UUID) error
+	GetTags(ctx context.Context, applicantID uuid.UUID) ([]*model.Tag, error)
+	SetTags(ctx context.Context, applicantID uuid.UUID, tagIDs []uuid.UUID) error
 }
 
 type applicantRepository struct {
@@ -34,38 +37,133 @@ func (r *applicantRepository) getDB(ctx context.Context) *gorm.DB {
 	return r.db.WithContext(ctx)
 }
 
-func (r *applicantRepository) Create(ctx context.Context, applicant *Applicant) error {
+func (r *applicantRepository) Create(ctx context.Context, applicant *model.Applicant) error {
 	return r.getDB(ctx).Create(applicant).Error
 }
 
-func (r *applicantRepository) GetByID(ctx context.Context, id uuid.UUID) (*Applicant, error) {
-	var applicant Applicant
-	err := r.getDB(ctx).First(&applicant, "id = ?", id).Error
+func (r *applicantRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Applicant, error) {
+	var applicant model.Applicant
+	err := r.getDB(ctx).
+		Preload("Tags").
+		Preload("User").
+		First(&applicant, "id = ?", id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, ErrApplicantNotFound
 		}
 		return nil, err
 	}
 	return &applicant, nil
 }
 
-func (r *applicantRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (*Applicant, error) {
-	var applicant Applicant
-	err := r.getDB(ctx).First(&applicant, "user_id = ?", userID).Error
+func (r *applicantRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (*model.Applicant, error) {
+	var applicant model.Applicant
+	err := r.getDB(ctx).
+		Preload("Tags").
+		Preload("User").
+		First(&applicant, "user_id = ?", userID).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, ErrApplicantNotFound
 		}
 		return nil, err
 	}
 	return &applicant, nil
 }
 
-func (r *applicantRepository) Update(ctx context.Context, applicant *Applicant) error {
-	return r.getDB(ctx).Save(applicant).Error
+func (r *applicantRepository) Update(ctx context.Context, id uuid.UUID, applicant map[string]any) error {
+	result := r.getDB(ctx).Model(&model.Applicant{}).
+		Where("id = ?", id).
+		Updates(applicant)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return ErrApplicantNotFound
+	}
+
+	return nil
 }
 
 func (r *applicantRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	return r.getDB(ctx).Delete(&Applicant{}, "id = ?", id).Error
+	result := r.getDB(ctx).Delete(&model.Applicant{}, "id = ?", id)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return ErrApplicantNotFound
+	}
+
+	return nil
+}
+
+func (r *applicantRepository) AddTags(ctx context.Context, applicantID uuid.UUID, tagIDs []uuid.UUID) error {
+	var applicant model.Applicant
+	if err := r.getDB(ctx).First(&applicant, "id = ?", applicantID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrApplicantNotFound
+		}
+		return err
+	}
+
+	var tags []*model.Tag
+	if err := r.getDB(ctx).Where("id IN ?", tagIDs).Find(&tags).Error; err != nil {
+		return err
+	}
+
+	return r.getDB(ctx).Model(&applicant).Association("Tags").Append(tags)
+}
+
+func (r *applicantRepository) RemoveTags(ctx context.Context, applicantID uuid.UUID, tagIDs []uuid.UUID) error {
+	var applicant model.Applicant
+	if err := r.getDB(ctx).First(&applicant, "id = ?", applicantID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrApplicantNotFound
+		}
+		return err
+	}
+
+	var tags []*model.Tag
+	if err := r.getDB(ctx).Where("id IN ?", tagIDs).Find(&tags).Error; err != nil {
+		return err
+	}
+
+	return r.getDB(ctx).Model(&applicant).Association("Tags").Delete(tags)
+}
+
+func (r *applicantRepository) GetTags(ctx context.Context, applicantID uuid.UUID) ([]*model.Tag, error) {
+	var applicant model.Applicant
+	if err := r.getDB(ctx).First(&applicant, "id = ?", applicantID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrApplicantNotFound
+		}
+		return nil, err
+	}
+
+	var tags []*model.Tag
+	err := r.getDB(ctx).Model(&applicant).Association("Tags").Find(&tags)
+	return tags, err
+}
+
+func (r *applicantRepository) SetTags(ctx context.Context, applicantID uuid.UUID, tagIDs []uuid.UUID) error {
+	var applicant model.Applicant
+	if err := r.getDB(ctx).First(&applicant, "id = ?", applicantID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrApplicantNotFound
+		}
+		return err
+	}
+
+	var tags []*model.Tag
+	if len(tagIDs) > 0 {
+		if err := r.getDB(ctx).Where("id IN ?", tagIDs).Find(&tags).Error; err != nil {
+			return err
+		}
+	}
+
+	return r.getDB(ctx).Model(&applicant).Association("Tags").Replace(tags)
 }

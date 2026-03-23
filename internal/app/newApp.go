@@ -49,8 +49,10 @@ func (a *App) Run() error {
 		service.WithAccessExpires(a.cfg.JWT.AccessTokenLifeTime),
 		service.WithRefreshExpires(a.cfg.JWT.RefreshTokenLifeTime),
 	)
+	applicantSrv := service.NewApplicantService(applicantRepo)
 
 	authHnd := handler.NewAuthHandler(authSrv)
+	applicantHnd := handler.NewApplicantHandler(applicantSrv)
 
 	router := gin.New()
 	router.Use(gin.Recovery())
@@ -59,9 +61,7 @@ func (a *App) Run() error {
 	v1 := router.Group("/api/v1")
 
 	routes.SetupAuthRoutes(v1, authHnd)
-
-	protected := v1.Group("/")
-	protected.Use(middleware.JWTAuth(tokenManager))
+	routes.SetupApplicantRoutes(v1, tokenManager, applicantHnd)
 
 	addr := fmt.Sprintf(":%v", a.cfg.App.Port)
 	return router.Run(addr)

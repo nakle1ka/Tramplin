@@ -14,6 +14,7 @@ type Employer = model.Employer
 type EmployerRepository interface {
 	Create(ctx context.Context, employer *Employer) error
 	GetByID(ctx context.Context, id uuid.UUID) (*Employer, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID) (*Employer, error)
 	Update(ctx context.Context, employer *Employer) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -43,6 +44,21 @@ func (r *employerRepository) GetByID(ctx context.Context, id uuid.UUID) (*Employ
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
+		}
+		return nil, err
+	}
+	return &employer, nil
+}
+
+func (r *employerRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (*Employer, error) {
+	var employer Employer
+
+	err := r.getDB(ctx).
+		Preload("Users").
+		First(&employer, "user_id = ?", userID).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrApplicantNotFound
 		}
 		return nil, err
 	}

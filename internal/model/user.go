@@ -25,9 +25,9 @@ func (r Role) IsValid() bool {
 }
 
 type User struct {
-	ID uuid.UUID `gorm:"type:uuid;primaryKey;column:id"`
+	ID uuid.UUID `gorm:"primaryKey;column:id"`
 
-	Email        string `gorm:"type:varchar(100);unique;notNull;column:email"`
+	Email        string `gorm:"uniqueIndex;type:varchar(100);notNull;column:email"`
 	PasswordHash string `gorm:"type:varchar(72);notNull;column:password_hash"`
 	Role         Role   `gorm:"type:smallint;notNull;column:role"`
 	IsVerified   bool   `gorm:"default:false;column:is_verified"`

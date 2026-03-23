@@ -14,6 +14,7 @@ type Curator = model.Curator
 type CuratorRepository interface {
 	Create(ctx context.Context, curator *Curator) error
 	GetByID(ctx context.Context, id uuid.UUID) (*Curator, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID) (*Curator, error)
 	Update(ctx context.Context, curator *Curator) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -43,6 +44,21 @@ func (r *curatorRepository) GetByID(ctx context.Context, id uuid.UUID) (*Curator
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
+		}
+		return nil, err
+	}
+	return &curator, nil
+}
+
+func (r *curatorRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (*Curator, error) {
+	var curator Curator
+
+	err := r.getDB(ctx).
+		Preload("Users").
+		First(&curator, "user_id = ?", userID).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrApplicantNotFound
 		}
 		return nil, err
 	}

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"time"
@@ -67,14 +68,6 @@ func (s *authService) Register(ctx context.Context, dto CreateAccountDTO) (AuthR
 	var response AuthResult
 
 	err := s.txManager.Wrap(ctx, func(txCtx context.Context) error {
-		existing, err := s.userRepo.GetByEmail(txCtx, dto.Email)
-		if err != nil {
-			return fmt.Errorf("check email: %w", err)
-		}
-		if existing != nil {
-			return ErrEmailExists
-		}
-
 		hashedPassword, err := s.passwordHasher.Hash([]byte(dto.Password))
 		if err != nil {
 			return fmt.Errorf("hash password: %w", err)
@@ -88,16 +81,16 @@ func (s *authService) Register(ctx context.Context, dto CreateAccountDTO) (AuthR
 		}
 
 		if err := s.userRepo.Create(txCtx, user); err != nil {
-			return fmt.Errorf("create user: %w", err)
+			return err
 		}
 
 		if err := s.createProfile(txCtx, user.ID, dto); err != nil {
-			return fmt.Errorf("create profile: %w", err)
+			return err
 		}
 
 		accessToken, refreshToken, err := s.issueSession(user.ID)
 		if err != nil {
-			return fmt.Errorf("issue session: %w", err)
+			return err
 		}
 
 		response = AuthResult{
@@ -247,9 +240,10 @@ func (s *authService) issueSession(userID uuid.UUID) (string, string, error) {
 	if err != nil {
 		return "", "", fmt.Errorf("hash refresh: %w", err)
 	}
+	hashStr := hex.EncodeToString(tokenHash)
 
 	key := fmt.Sprintf("session:%v:%v", userID, tokenID)
-	if err := s.cacheRepo.Set(key, string(tokenHash), s.refreshExp); err != nil {
+	if err := s.cacheRepo.Set(key, hashStr, s.refreshExp); err != nil {
 		return "", "", fmt.Errorf("save session: %w", err)
 	}
 
