@@ -99,10 +99,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	slog.Info("user logged in successfully", "user_id", resp.UserID, "role", resp.Role)
 
-	// Сохраняем только refresh token в cookie
 	h.setRefreshTokenCookie(c, resp.RefreshToken)
 
-	// Отдаем access token в ответе
 	c.JSON(http.StatusOK, dto.AuthResponse{
 		AccessToken: resp.AccessToken,
 		UserID:      resp.UserID,
@@ -121,7 +119,6 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 	if err := h.authService.Logout(c.Request.Context(), refreshToken); err != nil {
 		slog.Error("failed to logout", "error", err)
-		// Даже если произошла ошибка, очищаем куки
 	}
 
 	h.clearRefreshTokenCookie(c)
@@ -221,6 +218,7 @@ func mapRegisterRequestToDTO(req dto.RegisterRequest) (service.CreateAccountDTO,
 		dto.Employer = &model.Employer{
 			CompanyName: req.Employer.CompanyName,
 			Description: req.Employer.Description,
+			INN:         req.Employer.INN,
 			Website:     req.Employer.Website,
 		}
 	}

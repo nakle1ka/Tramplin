@@ -23,11 +23,6 @@ type ApplicantResponse struct {
 	UpdatedAt      time.Time     `json:"updated_at"`
 }
 
-type TagResponse struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
-}
-
 type UpdateApplicantRequest struct {
 	FirstName      *string        `json:"first_name,omitempty"`
 	SecondName     *string        `json:"second_name,omitempty"`
