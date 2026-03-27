@@ -3,26 +3,21 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/nakle1ka/Tramplin/internal/handler"
-	"github.com/nakle1ka/Tramplin/internal/middleware"
-	"github.com/nakle1ka/Tramplin/internal/pkg/auth"
 )
 
 func SetupApplicantRoutes(
 	router *gin.RouterGroup,
-	tm auth.TokenManager,
+	protectedRouter *gin.RouterGroup,
 	hnd *handler.ApplicantHandler,
 ) {
 	applicant := router.Group("/applicants")
-
-	protected := applicant.Group("/")
-	protected.Use(middleware.JWTAuth(tm))
+	protectedApplicant := protectedRouter.Group("/applicants")
 
 	{
 		applicant.GET("/:id", hnd.GetByID)
-		protected.GET("/me", hnd.GetMe)
-		protected.PATCH("/:id", hnd.Update)
-		protected.DELETE("/:id", hnd.Delete)
-		protected.POST("/:id/tags", hnd.AddTags)
-		protected.DELETE("/:id/tags", hnd.RemoveTags)
+		protectedApplicant.GET("/me", hnd.GetMe)
+		protectedApplicant.PATCH("/me", hnd.Update)
+		protectedApplicant.POST("/:id/tags", hnd.AddTags)
+		protectedApplicant.DELETE("/:id/tags", hnd.RemoveTags)
 	}
 }

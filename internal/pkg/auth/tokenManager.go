@@ -7,17 +7,25 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/nakle1ka/Tramplin/internal/model"
 )
 
 type TokenClaims struct {
-	TokenId string `json:"token_id"`
+	TokenId  string     `json:"token_id"`
+	UserRole model.Role `json:"role"`
 	jwt.RegisteredClaims
+}
+
+type TokenDTO struct {
+	UserID   string
+	UserRole model.Role
+	Expires  time.Duration
 }
 
 var ErrInvalidTokenPayload = errors.New("Invalid token payload")
 
 type TokenManager interface {
-	GenerateToken(userID string, exp time.Duration) (string, string, error)
+	GenerateToken(dto TokenDTO) (string, string, error)
 	ValidateToken(token string) (*TokenClaims, error)
 }
 
@@ -25,14 +33,15 @@ type tokenManager struct {
 	secretKey string
 }
 
-func (t *tokenManager) GenerateToken(userID string, exp time.Duration) (string, string, error) {
+func (t *tokenManager) GenerateToken(dto TokenDTO) (string, string, error) {
 	tokenId := uuid.New().String()
 
 	claims := &TokenClaims{
-		TokenId: tokenId,
+		TokenId:  tokenId,
+		UserRole: dto.UserRole,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(exp)),
-			Subject:   userID,
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(dto.Expires)),
+			Subject:   dto.UserID,
 		},
 	}
 
@@ -45,9 +54,9 @@ func (t *tokenManager) GenerateToken(userID string, exp time.Duration) (string, 
 func (t *tokenManager) ValidateToken(token string) (*TokenClaims, error) {
 	claims := &TokenClaims{}
 
-	parsedToken, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (any, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+	parsedToken, err := jwt.ParseWithClaims(token, claims, func(tkn *jwt.Token) (any, error) {
+		if _, ok := tkn.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", tkn.Header["alg"])
 		}
 		return []byte(t.secretKey), nil
 	})
@@ -56,11 +65,11 @@ func (t *tokenManager) ValidateToken(token string) (*TokenClaims, error) {
 		return nil, err
 	}
 
-	if parsedToken.Valid {
-		return claims, nil
+	if !parsedToken.Valid {
+		return nil, ErrInvalidTokenPayload
 	}
 
-	return nil, ErrInvalidTokenPayload
+	return claims, nil
 }
 
 func NewTokenManager(secretKey string) TokenManager {

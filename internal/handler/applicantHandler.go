@@ -7,289 +7,316 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/nakle1ka/Tramplin/internal/dto"
-	"github.com/nakle1ka/Tramplin/internal/middleware"
+	"github.com/nakle1ka/Tramplin/internal/model"
 	"github.com/nakle1ka/Tramplin/internal/service"
 )
 
 type ApplicantHandler struct {
-	service service.ApplicantService
+	applicantService service.ApplicantService
 }
 
-func NewApplicantHandler(service service.ApplicantService) *ApplicantHandler {
+func NewApplicantHandler(applicantService service.ApplicantService) *ApplicantHandler {
 	return &ApplicantHandler{
-		service: service,
+		applicantService: applicantService,
 	}
 }
 
 func (h *ApplicantHandler) GetMe(c *gin.Context) {
-	userIdStr, ok := c.Get(middleware.UserIdKey)
-	if !ok {
-		c.Status(http.StatusUnauthorized)
-		return
-	}
-	userId := userIdStr.(uuid.UUID)
-
-	applicant, err := h.service.GetMe(c.Request.Context(), userId)
+	authCtx, err := extractAuthContext(c)
 	if err != nil {
-		switch {
-		case errors.Is(err, service.ErrApplicantNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "applicant not found"})
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		}
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "unauthorized"})
 		return
 	}
 
-	resp := dto.ApplicantResponse{
-		ID:             applicant.ID,
-		Email:          applicant.User.Email,
-		UserID:         applicant.UserID,
-		FirstName:      applicant.FirstName,
-		SecondName:     applicant.SecondName,
-		LastName:       applicant.LastName,
-		University:     applicant.University,
-		GraduationYear: applicant.GraduationYear,
-		About:          applicant.About,
-		PrivacySetting: int(applicant.PrivacySetting),
-		CreatedAt:      applicant.CreatedAt,
-		UpdatedAt:      applicant.UpdatedAt,
+	req := service.GetMeApplicantRequest{
+		Auth: authCtx,
 	}
 
-	if len(applicant.Tags) > 0 {
-		resp.Tags = make([]dto.TagResponse, len(applicant.Tags))
-		for i, tag := range applicant.Tags {
-			resp.Tags[i] = dto.TagResponse{
-				ID:   tag.ID,
-				Name: tag.Name,
-			}
+	applicant, err := h.applicantService.GetMe(c.Request.Context(), req)
+	if err != nil {
+		if errors.Is(err, service.ErrApplicantNotFound) {
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "applicant not found"})
+			return
 		}
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to get applicant"})
+		return
 	}
 
-	c.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, toApplicantResponse(applicant, nil))
 }
 
 func (h *ApplicantHandler) GetByID(c *gin.Context) {
-	idStr := c.Param("id")
-	if idStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
-		return
-	}
-
-	id, err := uuid.Parse(idStr)
+	idParam := c.Param("id")
+	applicantID, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id format"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid applicant id"})
 		return
 	}
 
-	applicant, err := h.service.GetByID(c.Request.Context(), id)
+	var auth *service.AuthContext
+	authCtx, err := extractAuthContext(c)
+	if err == nil {
+		auth = &authCtx
+	}
+
+	req := service.GetApplicantByIDRequest{
+		Auth: auth,
+		ID:   applicantID,
+	}
+
+	applicant, err := h.applicantService.GetByID(c.Request.Context(), req)
 	if err != nil {
-		switch {
-		case errors.Is(err, service.ErrApplicantNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "applicant not found"})
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		if errors.Is(err, service.ErrApplicantNotFound) {
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "applicant not found"})
+			return
 		}
+		if errors.Is(err, service.ErrForbidden) {
+			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "access denied"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to get applicant"})
 		return
 	}
 
-	resp := dto.ApplicantResponse{
-		ID:             applicant.ID,
-		Email:          applicant.User.Email,
-		UserID:         applicant.UserID,
-		FirstName:      applicant.FirstName,
-		SecondName:     applicant.SecondName,
-		LastName:       applicant.LastName,
-		University:     applicant.University,
-		GraduationYear: applicant.GraduationYear,
-		About:          applicant.About,
-		PrivacySetting: int(applicant.PrivacySetting),
-		CreatedAt:      applicant.CreatedAt,
-		UpdatedAt:      applicant.UpdatedAt,
-	}
-
-	if len(applicant.Tags) > 0 {
-		resp.Tags = make([]dto.TagResponse, len(applicant.Tags))
-		for i, tag := range applicant.Tags {
-			resp.Tags[i] = dto.TagResponse{
-				ID:   tag.ID,
-				Name: tag.Name,
-			}
-		}
-	}
-
-	c.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, toApplicantResponse(applicant, nil))
 }
 
 func (h *ApplicantHandler) Update(c *gin.Context) {
-	idStr := c.Param("id")
-	if idStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
-		return
-	}
-
-	id, err := uuid.Parse(idStr)
+	authCtx, err := extractAuthContext(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id format"})
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "unauthorized"})
 		return
 	}
 
-	var req dto.UpdateApplicantRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+	var reqBody dto.UpdateApplicantRequest
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid request body"})
 		return
 	}
 
-	updateReq := service.UpdateApplicantRequest{
-		FirstName:      req.FirstName,
-		SecondName:     req.SecondName,
-		LastName:       req.LastName,
-		University:     req.University,
-		GraduationYear: req.GraduationYear,
-		About:          req.About,
-		PrivacySetting: req.PrivacySetting,
+	req := service.UpdateApplicantRequest{
+		Auth:           authCtx,
+		FirstName:      reqBody.FirstName,
+		SecondName:     reqBody.SecondName,
+		LastName:       reqBody.LastName,
+		University:     reqBody.University,
+		GraduationYear: reqBody.GraduationYear,
+		About:          reqBody.About,
+		PrivacySetting: reqBody.PrivacySetting,
 	}
 
-	if err := h.service.Update(c.Request.Context(), id, updateReq); err != nil {
-		switch {
-		case errors.Is(err, service.ErrInvalidInput):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
-		case errors.Is(err, service.ErrApplicantNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "applicant not found"})
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+	if err := h.applicantService.Update(c.Request.Context(), req); err != nil {
+		if errors.Is(err, service.ErrApplicantNotFound) {
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "applicant not found"})
+			return
 		}
+		if errors.Is(err, service.ErrForbidden) {
+			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "access denied"})
+			return
+		}
+		if errors.Is(err, service.ErrInvalidInput) {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to update applicant"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": "updated"})
+	c.JSON(http.StatusOK, gin.H{"message": "applicant updated successfully"})
 }
 
-func (h *ApplicantHandler) Delete(c *gin.Context) {
-	idStr := c.Param("id")
-	if idStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
-		return
-	}
-
-	id, err := uuid.Parse(idStr)
+func (h *ApplicantHandler) GetTags(c *gin.Context) {
+	idParam := c.Param("id")
+	applicantID, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id format"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid applicant id"})
 		return
 	}
 
-	if err := h.service.Delete(c.Request.Context(), id); err != nil {
-		switch {
-		case errors.Is(err, service.ErrInvalidInput):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
-		case errors.Is(err, service.ErrApplicantNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "applicant not found"})
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
-		}
-		return
+	var auth *service.AuthContext
+	authCtx, err := extractAuthContext(c)
+	if err == nil {
+		auth = &authCtx
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
-}
-
-func (h *ApplicantHandler) AddTags(c *gin.Context) {
-	idStr := c.Param("id")
-	if idStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
-		return
+	req := service.GetApplicantTagsRequest{
+		Auth:        auth,
+		ApplicantID: applicantID,
 	}
 
-	applicantID, err := uuid.Parse(idStr)
+	tags, err := h.applicantService.GetTags(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id format"})
-		return
-	}
-
-	var req dto.TagsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
-		return
-	}
-
-	if err := h.service.AddTags(c.Request.Context(), applicantID, req.TagIDs); err != nil {
-		switch {
-		case errors.Is(err, service.ErrInvalidInput):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
-		case errors.Is(err, service.ErrApplicantNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "applicant not found"})
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		if errors.Is(err, service.ErrApplicantNotFound) {
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "applicant not found"})
+			return
 		}
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"status": "tags added"})
-}
-
-func (h *ApplicantHandler) RemoveTags(c *gin.Context) {
-	idStr := c.Param("id")
-	if idStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
-		return
-	}
-
-	applicantID, err := uuid.Parse(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id format"})
-		return
-	}
-
-	var req dto.TagsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
-		return
-	}
-
-	if err := h.service.RemoveTags(c.Request.Context(), applicantID, req.TagIDs); err != nil {
-		switch {
-		case errors.Is(err, service.ErrInvalidInput):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
-		case errors.Is(err, service.ErrApplicantNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "applicant not found"})
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		if errors.Is(err, service.ErrForbidden) {
+			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "access denied"})
+			return
 		}
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to get tags"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": "tags removed"})
+	c.JSON(http.StatusOK, tagsToResponse(tags))
 }
 
 func (h *ApplicantHandler) SetTags(c *gin.Context) {
-	idStr := c.Param("id")
-	if idStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
-		return
-	}
-
-	applicantID, err := uuid.Parse(idStr)
+	idParam := c.Param("id")
+	applicantID, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id format"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid applicant id"})
 		return
 	}
 
-	var req dto.TagsRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+	authCtx, err := extractAuthContext(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "unauthorized"})
 		return
 	}
 
-	if err := h.service.SetTags(c.Request.Context(), applicantID, req.TagIDs); err != nil {
-		switch {
-		case errors.Is(err, service.ErrInvalidInput):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
-		case errors.Is(err, service.ErrApplicantNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "applicant not found"})
-		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+	var reqBody dto.TagsRequest
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid request body"})
+		return
+	}
+
+	req := service.SetApplicantTagsRequest{
+		Auth:        authCtx,
+		ApplicantID: applicantID,
+		TagIDs:      reqBody.TagIDs,
+	}
+
+	if err := h.applicantService.SetTags(c.Request.Context(), req); err != nil {
+		if errors.Is(err, service.ErrApplicantNotFound) {
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "applicant not found"})
+			return
 		}
+		if errors.Is(err, service.ErrForbidden) {
+			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "access denied"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to set tags"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": "tags set"})
+	c.JSON(http.StatusOK, gin.H{"message": "tags set successfully"})
+}
+
+func (h *ApplicantHandler) AddTags(c *gin.Context) {
+	idParam := c.Param("id")
+	applicantID, err := uuid.Parse(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid applicant id"})
+		return
+	}
+
+	authCtx, err := extractAuthContext(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "unauthorized"})
+		return
+	}
+
+	var reqBody dto.TagsRequest
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid request body"})
+		return
+	}
+
+	req := service.AddApplicantTagsRequest{
+		Auth:        authCtx,
+		ApplicantID: applicantID,
+		TagIDs:      reqBody.TagIDs,
+	}
+
+	if err := h.applicantService.AddTags(c.Request.Context(), req); err != nil {
+		if errors.Is(err, service.ErrApplicantNotFound) {
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "applicant not found"})
+			return
+		}
+		if errors.Is(err, service.ErrForbidden) {
+			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "access denied"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to add tags"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "tags added successfully"})
+}
+
+func (h *ApplicantHandler) RemoveTags(c *gin.Context) {
+	idParam := c.Param("id")
+	applicantID, err := uuid.Parse(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid applicant id"})
+		return
+	}
+
+	authCtx, err := extractAuthContext(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "unauthorized"})
+		return
+	}
+
+	var reqBody dto.TagsRequest
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid request body"})
+		return
+	}
+
+	req := service.RemoveApplicantTagsRequest{
+		Auth:        authCtx,
+		ApplicantID: applicantID,
+		TagIDs:      reqBody.TagIDs,
+	}
+
+	if err := h.applicantService.RemoveTags(c.Request.Context(), req); err != nil {
+		if errors.Is(err, service.ErrApplicantNotFound) {
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "applicant not found"})
+			return
+		}
+		if errors.Is(err, service.ErrForbidden) {
+			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "access denied"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to remove tags"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "tags removed successfully"})
+}
+
+func toApplicantResponse(a *model.Applicant, tags []*model.Tag) dto.ApplicantResponse {
+	resp := dto.ApplicantResponse{
+		ID:             a.ID,
+		Email:          a.User.Email,
+		UserID:         a.UserID,
+		FirstName:      a.FirstName,
+		SecondName:     a.SecondName,
+		LastName:       a.LastName,
+		University:     a.University,
+		GraduationYear: a.GraduationYear,
+		About:          a.About,
+		PrivacySetting: int(a.PrivacySetting),
+		CreatedAt:      a.CreatedAt,
+		UpdatedAt:      a.UpdatedAt,
+	}
+
+	if tags != nil {
+		resp.Tags = tagsToResponse(tags)
+	}
+
+	return resp
+}
+
+func tagsToResponse(tags []*model.Tag) []dto.TagResponse {
+	result := make([]dto.TagResponse, len(tags))
+	for i, tag := range tags {
+		result[i] = dto.TagResponse{
+			ID:   tag.ID,
+			Name: tag.Name,
+		}
+	}
+	return result
 }

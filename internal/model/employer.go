@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 type VerificationStatus int
@@ -28,9 +27,4 @@ type Employer struct {
 
 	CreatedAt time.Time `gorm:"autoCreateTime;column:created_at"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime;column:updated_at"`
-}
-
-func (e *Employer) BeforeCreate(tx *gorm.DB) error {
-	e.ID = uuid.New()
-	return nil
 }

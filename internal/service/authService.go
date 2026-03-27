@@ -74,6 +74,7 @@ func (s *authService) Register(ctx context.Context, dto CreateAccountDTO) (AuthR
 		}
 
 		user := &model.User{
+			ID:           uuid.New(),
 			Email:        dto.Email,
 			PasswordHash: string(hashedPassword),
 			Role:         dto.Role,
@@ -114,6 +115,7 @@ func (s *authService) createProfile(ctx context.Context, userID uuid.UUID, dto C
 			return fmt.Errorf("applicant profile is required")
 		}
 
+		dto.Applicant.ID = uuid.New()
 		dto.Applicant.UserID = userID
 		return s.applicantRepo.Create(ctx, dto.Applicant)
 
@@ -122,6 +124,7 @@ func (s *authService) createProfile(ctx context.Context, userID uuid.UUID, dto C
 			return fmt.Errorf("employer profile is required")
 		}
 
+		dto.Employer.ID = uuid.New()
 		dto.Employer.UserID = userID
 		dto.Employer.VerifiedStatus = model.StatusPending
 		return s.employerRepo.Create(ctx, dto.Employer)

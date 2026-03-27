@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"github.com/google/uuid"
 	"github.com/nakle1ka/Tramplin/internal/model"
 	"github.com/nakle1ka/Tramplin/internal/pkg/hash"
 	"gorm.io/gorm"
@@ -18,6 +19,7 @@ func SeedSuperAdmin(
 		}
 
 		user := &model.User{
+			ID:           uuid.New(),
 			Email:        email,
 			PasswordHash: string(hash),
 			Role:         model.RoleCurator,
@@ -29,6 +31,7 @@ func SeedSuperAdmin(
 		}
 
 		crtErr := tx.Create(&model.Curator{
+			ID:           uuid.New(),
 			UserID:       user.ID,
 			IsSuperAdmin: true,
 		}).Error

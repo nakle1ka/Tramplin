@@ -33,6 +33,8 @@ func (a *App) Run() error {
 	employerRepo := repository.NewEmployerRepository(a.db)
 	curatotRepo := repository.NewCuratorRepository(a.db)
 	userRepo := repository.NewUserRepository(a.db)
+	opportunityRepo := repository.NewOpportunityRepository(a.db)
+	tagRepo := repository.NewTagRepository(a.db)
 	cacheRepo := repository.NewCacheRepository(a.cache)
 
 	authSrv := service.NewAuthService(
@@ -50,18 +52,33 @@ func (a *App) Run() error {
 		service.WithRefreshExpires(a.cfg.JWT.RefreshTokenLifeTime),
 	)
 	applicantSrv := service.NewApplicantService(applicantRepo)
+	employerSrv := service.NewEmployerService(employerRepo)
+	opportunitySrv := service.NewOpportunityService(
+		opportunityRepo,
+		tagRepo,
+		employerRepo,
+		curatotRepo,
+	)
 
 	authHnd := handler.NewAuthHandler(authSrv)
 	applicantHnd := handler.NewApplicantHandler(applicantSrv)
+	employerHnd := handler.NewEmployerHandler(employerSrv)
+	opportunityHnd := handler.NewOpportunityHandler(opportunitySrv)
 
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(middleware.CORS())
 
 	v1 := router.Group("/api/v1")
+	v1.Use(middleware.ParseJWT(tokenManager))
+
+	protectedV1 := v1.Group("/")
+	protectedV1.Use(middleware.RegisteredOnly())
 
 	routes.SetupAuthRoutes(v1, authHnd)
-	routes.SetupApplicantRoutes(v1, tokenManager, applicantHnd)
+	routes.SetupApplicantRoutes(v1, protectedV1, applicantHnd)
+	routes.SetupEmployerRoutes(v1, protectedV1, employerHnd)
+	routes.SetupOpportunityRoutes(v1, protectedV1, opportunityHnd)
 
 	addr := fmt.Sprintf(":%v", a.cfg.App.Port)
 	return router.Run(addr)

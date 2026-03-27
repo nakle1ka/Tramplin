@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 type Curator struct {
@@ -17,9 +16,4 @@ type Curator struct {
 
 	CreatedAt time.Time `gorm:"autoCreateTime;column:created_at"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime;column:updated_at"`
-}
-
-func (c *Curator) BeforeCreate(tx *gorm.DB) error {
-	c.ID = uuid.New()
-	return nil
 }

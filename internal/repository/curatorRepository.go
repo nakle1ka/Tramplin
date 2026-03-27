@@ -54,7 +54,7 @@ func (r *curatorRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (
 	var curator Curator
 
 	err := r.getDB(ctx).
-		Preload("Users").
+		Preload("User").
 		First(&curator, "user_id = ?", userID).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

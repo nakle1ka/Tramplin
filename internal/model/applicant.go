@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 type Applicant struct {
@@ -29,22 +28,16 @@ type Applicant struct {
 	UpdatedAt time.Time `gorm:"autoUpdateTime;column:updated_at"`
 }
 
-func (a *Applicant) BeforeCreate(tx *gorm.DB) error {
-	a.ID = uuid.New()
-	return nil
-}
-
 type Privacy int
 
 const (
 	PrivacyPrivate Privacy = iota
 	PrivacyPublic
-	PrivacyContacts
 )
 
 func (p Privacy) IsValid() bool {
 	switch p {
-	case PrivacyPrivate, PrivacyPublic, PrivacyContacts:
+	case PrivacyPrivate, PrivacyPublic:
 		return true
 	default:
 		return false
