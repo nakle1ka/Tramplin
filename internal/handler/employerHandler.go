@@ -223,3 +223,81 @@ func (h *EmployerHandler) UpdateVerificationStatus(c *gin.Context) {
 	)
 	c.Status(http.StatusOK)
 }
+
+func (h *EmployerHandler) List(c *gin.Context) {
+	authCtx, err := extractAuthContext(c)
+	if err != nil {
+		slog.Warn("failed to extract auth context",
+			slog.String("error", err.Error()),
+		)
+		c.Status(http.StatusUnauthorized)
+		return
+	}
+
+	var req dto.ListEmployersRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		slog.Warn("invalid query parameters",
+			slog.String("error", err.Error()),
+		)
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error: "invalid query parameters",
+		})
+		return
+	}
+
+	res, err := h.service.List(c.Request.Context(), service.ListEmployersRequest{
+		Filters: service.ListEmployersFilters{
+			CompanyName:    req.CompanyName,
+			VerifiedStatus: req.VerifiedStatus,
+			Limit:          req.Limit,
+			Offset:         req.Offset,
+		},
+		Auth: authCtx,
+	})
+
+	if err != nil {
+		if errors.Is(err, service.ErrForbidden) {
+			slog.Warn("access denied for employers list",
+				slog.String("user_id", authCtx.UserID.String()),
+				slog.Int("role", int(authCtx.Role)),
+			)
+			c.JSON(http.StatusForbidden, dto.ErrorResponse{
+				Error: "access denied",
+			})
+			return
+		}
+		slog.Error("failed to list employers",
+			slog.String("error", err.Error()),
+			slog.String("user_id", authCtx.UserID.String()),
+		)
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error: "internal server error",
+		})
+		return
+	}
+
+	employersResponse := make([]dto.EmployerResponse, len(res.Employers))
+	for i, employer := range res.Employers {
+		employersResponse[i] = dto.EmployerResponse{
+			ID:             employer.ID,
+			UserID:         employer.UserID,
+			Email:          employer.User.Email,
+			CompanyName:    employer.CompanyName,
+			INN:            employer.INN,
+			Description:    employer.Description,
+			Website:        employer.Website,
+			VerifiedStatus: employer.VerifiedStatus,
+			CreatedAt:      employer.CreatedAt,
+			UpdatedAt:      employer.UpdatedAt,
+		}
+	}
+
+	response := dto.ListEmployersResponse{
+		Employers: employersResponse,
+		Total:     res.Total,
+		Limit:     req.Limit,
+		Offset:    req.Offset,
+	}
+
+	c.JSON(http.StatusOK, response)
+}

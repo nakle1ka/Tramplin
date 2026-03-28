@@ -29,3 +29,17 @@ type EmployerResponse struct {
 	CreatedAt      time.Time                `json:"created_at"`
 	UpdatedAt      time.Time                `json:"updated_at"`
 }
+
+type ListEmployersRequest struct {
+	CompanyName    *string                   `form:"company_name" json:"company_name"`
+	VerifiedStatus *model.VerificationStatus `form:"verified_status" json:"verified_status"`
+	Limit          int                       `form:"limit" json:"limit" binding:"min:0,max:100"`
+	Offset         int                       `form:"offset" json:"offset" binding:"min:0"`
+}
+
+type ListEmployersResponse struct {
+	Employers []EmployerResponse `json:"employers"`
+	Total     int64              `json:"total"`
+	Limit     int                `json:"limit"`
+	Offset    int                `json:"offset"`
+}

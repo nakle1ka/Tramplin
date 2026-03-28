@@ -13,6 +13,7 @@ type Employer = model.Employer
 
 type EmployerRepository interface {
 	Create(ctx context.Context, employer *Employer) error
+	List(ctx context.Context, filters EmployerListFilters) ([]*Employer, int64, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*Employer, error)
 	GetByUserID(ctx context.Context, userID uuid.UUID) (*Employer, error)
 	Update(ctx context.Context, id uuid.UUID, employer map[string]any) error
@@ -101,4 +102,48 @@ func (r *employerRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
+}
+
+type EmployerListFilters struct {
+	CompanyName    *string
+	VerifiedStatus *model.VerificationStatus
+	Limit          int
+	Offset         int
+}
+
+func (r *employerRepository) List(ctx context.Context, filters EmployerListFilters) ([]*Employer, int64, error) {
+	var employers []*Employer
+	var total int64
+
+	db := r.getDB(ctx).Model(&Employer{})
+
+	if filters.CompanyName != nil {
+		db = db.Where("company_name ILIKE ?", "%"+*filters.CompanyName+"%")
+	}
+
+	if filters.VerifiedStatus != nil {
+		db = db.Where("verified_status = ?", *filters.VerifiedStatus)
+	}
+
+	err := db.Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	db = db.Limit(filters.Limit)
+
+	if filters.Offset > 0 {
+		db = db.Offset(filters.Offset)
+	}
+
+	err = db.
+		Preload("User").
+		Order("created_at DESC").
+		Find(&employers).Error
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return employers, total, nil
 }

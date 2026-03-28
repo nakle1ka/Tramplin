@@ -9,6 +9,7 @@ import (
 )
 
 type EmployerService interface {
+	List(ctx context.Context, req ListEmployersRequest) (*ListEmployersResponse, error)
 	GetMe(ctx context.Context, req GetMeEmployerRequest) (*model.Employer, error)
 	GetByID(ctx context.Context, req GetByIdOpportunityRequest) (*model.Employer, error)
 	Update(ctx context.Context, req UpdateEmployerRequest) error
@@ -108,4 +109,48 @@ func (s *employerService) UpdateVerifiedStatus(ctx context.Context, req UpdateVe
 	field["verified_status"] = req.Status
 
 	return s.repo.Update(ctx, employer.ID, field)
+}
+
+type ListEmployersRequest struct {
+	Filters ListEmployersFilters
+	Auth    AuthContext
+}
+
+type ListEmployersFilters struct {
+	CompanyName    *string
+	VerifiedStatus *model.VerificationStatus
+	Limit          int
+	Offset         int
+}
+
+type ListEmployersResponse struct {
+	Employers []*model.Employer
+	Total     int64
+	Limit     int
+	Offset    int
+}
+
+func (s *employerService) List(ctx context.Context, req ListEmployersRequest) (*ListEmployersResponse, error) {
+	if req.Auth.Role != model.RoleCurator {
+		return nil, ErrForbidden
+	}
+
+	repoFilters := repository.EmployerListFilters{
+		CompanyName:    req.Filters.CompanyName,
+		VerifiedStatus: req.Filters.VerifiedStatus,
+		Limit:          req.Filters.Limit,
+		Offset:         req.Filters.Offset,
+	}
+
+	employers, total, err := s.repo.List(ctx, repoFilters)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ListEmployersResponse{
+		Employers: employers,
+		Total:     total,
+		Limit:     req.Filters.Limit,
+		Offset:    req.Filters.Offset,
+	}, nil
 }
