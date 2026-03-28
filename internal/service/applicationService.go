@@ -189,7 +189,7 @@ func (s *applicationService) GetApplicationByID(ctx context.Context, dto GetAppl
 }
 
 type GetApplicationsByOpportunityDTO struct {
-	Auth          *AuthContext
+	Auth          AuthContext
 	OpportunityID uuid.UUID
 	Limit         int
 	Offset        int
@@ -222,18 +222,14 @@ func (s *applicationService) GetApplicationsByOpportunity(ctx context.Context, d
 }
 
 type GetApplicationsByApplicantDTO struct {
-	Auth        *AuthContext
+	Auth        AuthContext
 	ApplicantID uuid.UUID
 	Limit       int
 	Offset      int
 }
 
 func (s *applicationService) GetApplicationsByApplicant(ctx context.Context, dto GetApplicationsByApplicantDTO) ([]*model.Application, int64, error) {
-	if dto.Auth.Role != model.RoleApplicant {
-		return nil, 0, ErrForbidden
-	}
-
-	applicant, err := s.applicantRepo.GetByUserID(ctx, dto.Auth.UserID)
+	applicant, err := s.applicantRepo.GetByID(ctx, dto.ApplicantID)
 	if err != nil {
 		if errors.Is(err, repository.ErrApplicantNotFound) {
 			return nil, 0, ErrApplicantNotFound
@@ -241,8 +237,18 @@ func (s *applicationService) GetApplicationsByApplicant(ctx context.Context, dto
 		return nil, 0, err
 	}
 
-	if applicant.ID != dto.ApplicantID {
-		return nil, 0, ErrForbidden
+	if applicant.PrivacySetting != model.PrivacyPublic {
+		var reqApplicant *model.Applicant
+		if dto.Auth.Role == model.RoleApplicant {
+			reqApplicant, err = s.applicantRepo.GetByUserID(ctx, dto.Auth.UserID)
+			if err != nil {
+				return nil, 0, err
+			}
+		}
+
+		if reqApplicant == nil || reqApplicant.ID != applicant.ID {
+			return nil, 0, ErrForbidden
+		}
 	}
 
 	return s.applicationRepo.GetByApplicantID(ctx, dto.ApplicantID, dto.Limit, dto.Offset)

@@ -206,7 +206,7 @@ func (h *ApplicationHandler) GetApplications(c *gin.Context) {
 		}
 
 		applications, total, err := h.appService.GetApplicationsByOpportunity(c.Request.Context(), service.GetApplicationsByOpportunityDTO{
-			Auth:          &auth,
+			Auth:          auth,
 			OpportunityID: id,
 			Limit:         req.Limit,
 			Offset:        req.Offset,
@@ -263,7 +263,7 @@ func (h *ApplicationHandler) GetApplications(c *gin.Context) {
 		}
 
 		applications, total, err := h.appService.GetApplicationsByApplicant(c.Request.Context(), service.GetApplicationsByApplicantDTO{
-			Auth:        &auth,
+			Auth:        auth,
 			ApplicantID: id,
 			Limit:       req.Limit,
 			Offset:      req.Offset,
