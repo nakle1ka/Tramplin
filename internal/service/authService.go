@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"encoding/hex"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"time"
@@ -164,7 +164,7 @@ func (s *authService) Login(ctx context.Context, email string, password string) 
 func (s *authService) Logout(ctx context.Context, refreshToken string) error {
 	claims, err := s.tokenManager.ValidateToken(refreshToken)
 	if err != nil {
-		return fmt.Errorf("validate token: %w", err)
+		return ErrInvalidToken
 	}
 
 	userID, err := uuid.Parse(claims.Subject)
@@ -179,7 +179,7 @@ func (s *authService) Logout(ctx context.Context, refreshToken string) error {
 func (s *authService) Refresh(ctx context.Context, refreshToken string) (AuthResult, error) {
 	claims, err := s.tokenManager.ValidateToken(refreshToken)
 	if err != nil {
-		return AuthResult{}, fmt.Errorf("validate token: %w", err)
+		return AuthResult{}, ErrInvalidToken
 	}
 
 	userID, err := uuid.Parse(claims.Subject)
@@ -196,9 +196,14 @@ func (s *authService) Refresh(ctx context.Context, refreshToken string) (AuthRes
 	}
 
 	key := fmt.Sprintf("session:%v:%v", userID, claims.TokenId)
-	storedHash, err := s.cacheRepo.Get(key)
+	storedHashBase64, err := s.cacheRepo.Get(key)
 	if err != nil {
 		return AuthResult{}, fmt.Errorf("get session: %w", err)
+	}
+
+	storedHash, err := base64.StdEncoding.DecodeString(storedHashBase64)
+	if err != nil {
+		return AuthResult{}, fmt.Errorf("decode session: %w", err)
 	}
 
 	if !s.tokenHasher.Verify([]byte(refreshToken), []byte(storedHash)) {
@@ -251,10 +256,10 @@ func (s *authService) issueSession(userID uuid.UUID, userRole model.Role) (strin
 	if err != nil {
 		return "", "", fmt.Errorf("hash refresh: %w", err)
 	}
-	hashStr := hex.EncodeToString(tokenHash)
+	base64Str := base64.StdEncoding.EncodeToString(tokenHash)
 
 	key := fmt.Sprintf("session:%v:%v", userID, tokenID)
-	if err := s.cacheRepo.Set(key, hashStr, s.refreshExp); err != nil {
+	if err := s.cacheRepo.Set(key, base64Str, s.refreshExp); err != nil {
 		return "", "", fmt.Errorf("save session: %w", err)
 	}
 

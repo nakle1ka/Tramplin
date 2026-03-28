@@ -11,13 +11,15 @@ var (
 	ErrUnknownRole        = errors.New("unknown user role")
 	ErrForbidden          = errors.New("access denied")
 
-	ErrUserNotFound      = errors.New("user not found")
-	ErrApplicantNotFound = errors.New("applicant not found")
-	ErrEmailExists       = errors.New("user with this email already exists")
+	ErrUserNotFound        = errors.New("user not found")
+	ErrApplicantNotFound   = errors.New("applicant not found")
+	ErrApplicationNotFound = errors.New("application not found")
+	ErrEmailExists         = errors.New("user with this email already exists")
 
 	ErrInvalidInput       = errors.New("invalid input")
 	ErrInvalidAmount      = errors.New("invalid amount")
 	ErrInvalidEmployerINN = errors.New("invalid employer INN")
+	ErrAlreadyApplied     = errors.New("already applied to this opportunity")
 
 	ErrOpportunityNotFound = errors.New("opportunity not found")
 	ErrInvalidOpportunity  = errors.New("invalid opportunity data")
@@ -25,4 +27,5 @@ var (
 	ErrInvalidSalary       = errors.New("invalid salary: min must be less than or equal to max")
 	ErrExpiredOpportunity  = errors.New("cannot modify expired opportunity")
 	ErrAlreadyModerated    = errors.New("opportunity already moderated")
+	ErrOpportunityClosed   = errors.New("opportunity is closed")
 )

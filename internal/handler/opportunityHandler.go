@@ -218,6 +218,24 @@ func (h *OpportunityHandler) List(c *gin.Context) {
 		return
 	}
 
+	var EmployerID, CuratorID *uuid.UUID
+	if req.EmployerID != nil {
+		parsed, err := uuid.Parse(*req.EmployerID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid employer id"})
+			return
+		}
+		EmployerID = &parsed
+	}
+	if req.CuratorID != nil {
+		parsed, err := uuid.Parse(*req.CuratorID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid employer id"})
+			return
+		}
+		CuratorID = &parsed
+	}
+
 	var authCtx *service.AuthContext
 	extractedAuthCtx, err := extractAuthContext(c)
 	if err != nil {
@@ -227,8 +245,8 @@ func (h *OpportunityHandler) List(c *gin.Context) {
 	}
 
 	filter := service.OpportunityFilter{
-		EmployerID:       req.EmployerID,
-		CuratorID:        req.CuratorID,
+		EmployerID:       EmployerID,
+		CuratorID:        CuratorID,
 		OpportunityType:  req.OpportunityType,
 		WorkFormat:       req.WorkFormat,
 		ExperienceLevel:  req.ExperienceLevel,

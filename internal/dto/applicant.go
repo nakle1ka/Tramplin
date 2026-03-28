@@ -17,7 +17,7 @@ type ApplicantResponse struct {
 	University     string        `json:"university,omitempty"`
 	GraduationYear int           `json:"graduation_year,omitempty"`
 	About          string        `json:"about,omitempty"`
-	PrivacySetting int           `json:"privacy_setting"`
+	PrivacySetting model.Privacy `json:"privacy_setting"`
 	Tags           []TagResponse `json:"tags,omitempty"`
 	CreatedAt      time.Time     `json:"created_at"`
 	UpdatedAt      time.Time     `json:"updated_at"`

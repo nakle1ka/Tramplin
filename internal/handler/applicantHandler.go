@@ -298,7 +298,7 @@ func toApplicantResponse(a *model.Applicant, tags []*model.Tag) dto.ApplicantRes
 		University:     a.University,
 		GraduationYear: a.GraduationYear,
 		About:          a.About,
-		PrivacySetting: int(a.PrivacySetting),
+		PrivacySetting: a.PrivacySetting,
 		CreatedAt:      a.CreatedAt,
 		UpdatedAt:      a.UpdatedAt,
 	}

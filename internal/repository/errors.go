@@ -8,4 +8,5 @@ var (
 	ErrEmployerNotFound    = errors.New("employer not found")
 	ErrTagNotFound         = errors.New("tag not found")
 	ErrTagNameExists       = errors.New("tag name already exists")
+	ErrApplicationNotFound = errors.New("application not found")
 )

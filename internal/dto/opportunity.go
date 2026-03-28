@@ -45,8 +45,8 @@ type UpdateModerationStatusRequest struct {
 }
 
 type ListOpportunitiesRequest struct {
-	EmployerID       *uuid.UUID              `form:"employer_id"`
-	CuratorID        *uuid.UUID              `form:"curator_id"`
+	EmployerID       *string                 `form:"employer_id"`
+	CuratorID        *string                 `form:"curator_id"`
 	OpportunityType  *model.OpportunityType  `form:"opportunity_type"`
 	WorkFormat       *model.WorkFormat       `form:"work_format"`
 	ExperienceLevel  *model.ExpirienseLevel  `form:"experience_level"`
