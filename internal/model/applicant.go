@@ -22,6 +22,7 @@ type Applicant struct {
 	GraduationYear int    `gorm:"type:smallint;column:graduation_year"`
 
 	About          string  `gorm:"type:text;column:about"`
+	WorkExperience string  `gorm:"type:text;column:work_experience"`
 	PrivacySetting Privacy `gorm:"type:smallint;default:1;column:privacy_setting"`
 
 	CreatedAt time.Time `gorm:"autoCreateTime;column:created_at"`

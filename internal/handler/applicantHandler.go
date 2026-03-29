@@ -103,6 +103,7 @@ func (h *ApplicantHandler) Update(c *gin.Context) {
 		GraduationYear: reqBody.GraduationYear,
 		About:          reqBody.About,
 		PrivacySetting: reqBody.PrivacySetting,
+		WorkExpirience: reqBody.WorkExpirience,
 	}
 
 	if err := h.applicantService.Update(c.Request.Context(), req); err != nil {

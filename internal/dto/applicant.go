@@ -29,6 +29,7 @@ type UpdateApplicantRequest struct {
 	LastName       *string        `json:"last_name,omitempty"`
 	University     *string        `json:"university,omitempty"`
 	GraduationYear *int           `json:"graduation_year,omitempty"`
+	WorkExpirience *string        `json:"work_experience,omitempty"`
 	About          *string        `json:"about,omitempty"`
 	PrivacySetting *model.Privacy `json:"privacy_setting,omitempty"`
 }

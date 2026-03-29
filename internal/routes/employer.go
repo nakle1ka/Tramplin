@@ -10,6 +10,7 @@ func SetupEmployerRoutes(router *gin.RouterGroup, protectedRouter *gin.RouterGro
 	protectedEmployers := protectedRouter.Group("/employers")
 	{
 		employers.GET("/:id", hnd.GetByID)
+		protectedEmployers.GET("/", hnd.List)
 		protectedEmployers.GET("/me", hnd.GetMe)
 		protectedEmployers.PATCH("/me", hnd.Update)
 		protectedEmployers.PUT("/:id/verification", hnd.UpdateVerificationStatus)

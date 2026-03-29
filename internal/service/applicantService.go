@@ -75,6 +75,7 @@ type UpdateApplicantRequest struct {
 	GraduationYear *int
 	About          *string
 	PrivacySetting *model.Privacy
+	WorkExpirience *string
 }
 
 func (s *applicantService) Update(ctx context.Context, req UpdateApplicantRequest) error {
@@ -133,6 +134,9 @@ func (s *applicantService) Update(ctx context.Context, req UpdateApplicantReques
 			return ErrInvalidInput
 		}
 		updates["privacy_setting"] = *req.PrivacySetting
+	}
+	if req.WorkExpirience != nil {
+		updates["work_experience"] = *req.WorkExpirience
 	}
 
 	if len(updates) == 0 {
