@@ -10,4 +10,5 @@ var (
 	ErrTagNameExists       = errors.New("tag name already exists")
 	ErrApplicationNotFound = errors.New("application not found")
 	ErrCuratorNotFound     = errors.New("curator not found")
+	ErrContactNotFound     = errors.New("contact not found")
 )

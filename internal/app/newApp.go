@@ -36,6 +36,7 @@ func (a *App) Run() error {
 	opportunityRepo := repository.NewOpportunityRepository(a.db)
 	tagRepo := repository.NewTagRepository(a.db)
 	applicationRepo := repository.NewApplicationRepository(a.db)
+	contactRepo := repository.NewContactRepository(a.db)
 	cacheRepo := repository.NewCacheRepository(a.cache)
 
 	authSrv := service.NewAuthService(
@@ -67,6 +68,7 @@ func (a *App) Run() error {
 		applicantRepo,
 		employerRepo,
 	)
+	contactSrv := service.NewContactService(contactRepo, applicantRepo)
 
 	authHnd := handler.NewAuthHandler(authSrv)
 	applicantHnd := handler.NewApplicantHandler(applicantSrv)
@@ -74,6 +76,7 @@ func (a *App) Run() error {
 	curatorHnd := handler.NewCuratorHandler(curatorSrv)
 	opportunityHnd := handler.NewOpportunityHandler(opportunitySrv)
 	applicationHnd := handler.NewApplicationHandler(applicationSrv)
+	contactHnd := handler.NewContactHandler(contactSrv)
 
 	router := gin.New()
 	router.Use(gin.Recovery())
@@ -91,6 +94,7 @@ func (a *App) Run() error {
 	routes.SetupCuratorRoutes(protectedV1, curatorHnd)
 	routes.SetupOpportunityRoutes(v1, protectedV1, opportunityHnd)
 	routes.SetupApplicationRoutes(protectedV1, applicationHnd)
+	routes.SetupContactRoutes(protectedV1, contactHnd)
 
 	addr := fmt.Sprintf(":%v", a.cfg.App.Port)
 	return router.Run(addr)

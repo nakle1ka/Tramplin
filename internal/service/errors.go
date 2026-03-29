@@ -16,6 +16,7 @@ var (
 	ErrCuratorNotFound     = errors.New("curator not found")
 	ErrApplicationNotFound = errors.New("application not found")
 	ErrEmailExists         = errors.New("user with this email already exists")
+	ErrContactNotFound     = errors.New("contact not found")
 
 	ErrInvalidInput       = errors.New("invalid input")
 	ErrInvalidAmount      = errors.New("invalid amount")

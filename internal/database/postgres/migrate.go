@@ -14,5 +14,6 @@ func Migrate(db *gorm.DB) error {
 		&model.Opportunity{},
 		&model.Tag{},
 		&model.Application{},
+		&model.Contact{},
 	)
 }
