@@ -227,7 +227,7 @@ func (s *authService) Refresh(ctx context.Context, req RefreshRequest) (AuthResp
 		return AuthResponse{}, fmt.Errorf("get user: %w", err)
 	}
 	if user == nil {
-		return AuthResponse{}, ErrUserNotFound
+		return AuthResponse{}, ErrNotFound
 	}
 
 	key := fmt.Sprintf("session:%v:%v", userID, claims.TokenId)

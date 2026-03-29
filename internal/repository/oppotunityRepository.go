@@ -70,7 +70,7 @@ func (r *opportunityRepository) GetByID(ctx context.Context, id uuid.UUID) (*Opp
 		First(&opportunity, "id = ?", id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrOpportunityNotFound
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (r *opportunityRepository) Update(ctx context.Context, id uuid.UUID, update
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return ErrOpportunityNotFound
+		return ErrNotFound
 	}
 	return nil
 }
@@ -123,7 +123,7 @@ func (r *opportunityRepository) AddTags(ctx context.Context, opportunityID uuid.
 		var opportunity Opportunity
 		if err := tx.First(&opportunity, "id = ?", opportunityID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrOpportunityNotFound
+				return ErrNotFound
 			}
 			return err
 		}
@@ -146,7 +146,7 @@ func (r *opportunityRepository) RemoveTags(ctx context.Context, opportunityID uu
 		var opportunity Opportunity
 		if err := tx.First(&opportunity, "id = ?", opportunityID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return ErrOpportunityNotFound
+				return ErrNotFound
 			}
 			return err
 		}
@@ -170,7 +170,7 @@ func (r *opportunityRepository) Delete(ctx context.Context, id uuid.UUID) error 
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return ErrOpportunityNotFound
+		return ErrNotFound
 	}
 	return nil
 }

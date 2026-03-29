@@ -169,8 +169,8 @@ func (s *contactService) UpdateStatus(ctx context.Context, dto UpdateStatusDTO) 
 
 	applicant, err := s.applicantRepo.GetByUserID(ctx, dto.Auth.UserID)
 	if err != nil {
-		if errors.Is(err, repository.ErrContactNotFound) {
-			return ErrContactNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrNotFound
 		}
 		return err
 	}
@@ -208,8 +208,8 @@ func (s *contactService) Delete(ctx context.Context, dto DeleteContactDTO) error
 
 	contact, err := s.repo.GetByID(ctx, dto.ID)
 	if err != nil {
-		if errors.Is(err, repository.ErrContactNotFound) {
-			return ErrContactNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrNotFound
 		}
 		return err
 	}

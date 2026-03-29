@@ -50,7 +50,7 @@ func (r *applicationRepository) GetByID(ctx context.Context, id uuid.UUID) (*mod
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrApplicationNotFound
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (r *applicationRepository) GetByOpportunityID(ctx context.Context, opportun
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return []*model.Application{}, 0, ErrApplicationNotFound
+			return []*model.Application{}, 0, ErrNotFound
 		}
 		return []*model.Application{}, 0, err
 	}
@@ -111,7 +111,7 @@ func (r *applicationRepository) GetByApplicantID(ctx context.Context, applicantI
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return []*model.Application{}, 0, ErrApplicationNotFound
+			return []*model.Application{}, 0, ErrNotFound
 		}
 		return []*model.Application{}, 0, err
 	}
@@ -127,7 +127,7 @@ func (r *applicationRepository) UpdateAcceptStatus(ctx context.Context, id uuid.
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrApplicationNotFound
+			return ErrNotFound
 		}
 		return err
 	}
@@ -140,7 +140,7 @@ func (r *applicationRepository) Delete(ctx context.Context, id uuid.UUID) error 
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrApplicationNotFound
+			return ErrNotFound
 		}
 		return err
 	}

@@ -29,14 +29,14 @@ func (s *CuratorService) GetMe(ctx context.Context, req GetMeRequest) (*model.Cu
 
 	curator, err := s.curatorRepo.GetByUserID(ctx, req.Auth.UserID)
 	if err != nil {
-		if errors.Is(err, repository.ErrApplicantNotFound) {
-			return nil, ErrCuratorNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
 
 	if curator == nil {
-		return nil, ErrCuratorNotFound
+		return nil, ErrNotFound
 	}
 
 	return curator, nil
@@ -50,8 +50,8 @@ type UpdateRequest struct {
 func (s *CuratorService) Update(ctx context.Context, req UpdateRequest) error {
 	curator, err := s.curatorRepo.GetByUserID(ctx, req.Auth.UserID)
 	if err != nil {
-		if errors.Is(err, repository.ErrCuratorNotFound) {
-			return ErrCuratorNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrNotFound
 		}
 		return err
 	}

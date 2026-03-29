@@ -49,7 +49,7 @@ func (r *applicantRepository) GetByID(ctx context.Context, id uuid.UUID) (*model
 		First(&applicant, "id = ?", id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrApplicantNotFound
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (r *applicantRepository) GetByUserID(ctx context.Context, userID uuid.UUID)
 		First(&applicant, "user_id = ?", userID).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrApplicantNotFound
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (r *applicantRepository) Update(ctx context.Context, id uuid.UUID, applican
 	}
 
 	if result.RowsAffected == 0 {
-		return ErrApplicantNotFound
+		return ErrNotFound
 	}
 
 	return nil
@@ -95,7 +95,7 @@ func (r *applicantRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	if result.RowsAffected == 0 {
-		return ErrApplicantNotFound
+		return ErrNotFound
 	}
 
 	return nil
@@ -105,7 +105,7 @@ func (r *applicantRepository) AddTags(ctx context.Context, applicantID uuid.UUID
 	var applicant model.Applicant
 	if err := r.getDB(ctx).First(&applicant, "id = ?", applicantID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrApplicantNotFound
+			return ErrNotFound
 		}
 		return err
 	}
@@ -122,7 +122,7 @@ func (r *applicantRepository) RemoveTags(ctx context.Context, applicantID uuid.U
 	var applicant model.Applicant
 	if err := r.getDB(ctx).First(&applicant, "id = ?", applicantID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrApplicantNotFound
+			return ErrNotFound
 		}
 		return err
 	}
@@ -139,7 +139,7 @@ func (r *applicantRepository) GetTags(ctx context.Context, applicantID uuid.UUID
 	var applicant model.Applicant
 	if err := r.getDB(ctx).First(&applicant, "id = ?", applicantID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrApplicantNotFound
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (r *applicantRepository) SetTags(ctx context.Context, applicantID uuid.UUID
 	var applicant model.Applicant
 	if err := r.getDB(ctx).First(&applicant, "id = ?", applicantID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrApplicantNotFound
+			return ErrNotFound
 		}
 		return err
 	}

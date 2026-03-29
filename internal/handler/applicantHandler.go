@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -24,6 +25,7 @@ func NewApplicantHandler(applicantService service.ApplicantService) *ApplicantHa
 func (h *ApplicantHandler) GetMe(c *gin.Context) {
 	authCtx, err := extractAuthContext(c)
 	if err != nil {
+		slog.Warn("failed to extract auth context", "error", err, "path", c.Request.URL.Path)
 		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "unauthorized"})
 		return
 	}
@@ -34,14 +36,17 @@ func (h *ApplicantHandler) GetMe(c *gin.Context) {
 
 	applicant, err := h.applicantService.GetMe(c.Request.Context(), req)
 	if err != nil {
-		if errors.Is(err, service.ErrApplicantNotFound) {
+		if errors.Is(err, service.ErrNotFound) {
+			slog.Warn("applicant not found", "user_id", authCtx.UserID, "path", c.Request.URL.Path)
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "applicant not found"})
 			return
 		}
+		slog.Error("failed to get applicant", "error", err, "user_id", authCtx.UserID)
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to get applicant"})
 		return
 	}
 
+	slog.Info("applicant retrieved successfully", "applicant_id", applicant.ID, "user_id", authCtx.UserID)
 	c.JSON(http.StatusOK, toApplicantResponse(applicant, nil))
 }
 
@@ -49,6 +54,7 @@ func (h *ApplicantHandler) GetByID(c *gin.Context) {
 	idParam := c.Param("id")
 	applicantID, err := uuid.Parse(idParam)
 	if err != nil {
+		slog.Warn("invalid applicant id", "id", idParam, "error", err)
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid applicant id"})
 		return
 	}
@@ -66,30 +72,41 @@ func (h *ApplicantHandler) GetByID(c *gin.Context) {
 
 	applicant, err := h.applicantService.GetByID(c.Request.Context(), req)
 	if err != nil {
-		if errors.Is(err, service.ErrApplicantNotFound) {
+		if errors.Is(err, service.ErrNotFound) {
+			slog.Warn("applicant not found", "applicant_id", applicantID, "path", c.Request.URL.Path)
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "applicant not found"})
 			return
 		}
 		if errors.Is(err, service.ErrForbidden) {
+			slog.Warn("access denied to applicant", "applicant_id", applicantID, "auth_user_id", func() string {
+				if auth != nil {
+					return auth.UserID.String()
+				}
+				return "none"
+			}())
 			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "access denied"})
 			return
 		}
+		slog.Error("failed to get applicant by id", "error", err, "applicant_id", applicantID)
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to get applicant"})
 		return
 	}
 
+	slog.Info("applicant retrieved by id", "applicant_id", applicantID)
 	c.JSON(http.StatusOK, toApplicantResponse(applicant, nil))
 }
 
 func (h *ApplicantHandler) Update(c *gin.Context) {
 	authCtx, err := extractAuthContext(c)
 	if err != nil {
+		slog.Warn("failed to extract auth context for update", "error", err)
 		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "unauthorized"})
 		return
 	}
 
 	var reqBody dto.UpdateApplicantRequest
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		slog.Warn("invalid request body for update", "error", err, "user_id", authCtx.UserID)
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid request body"})
 		return
 	}
@@ -107,22 +124,27 @@ func (h *ApplicantHandler) Update(c *gin.Context) {
 	}
 
 	if err := h.applicantService.Update(c.Request.Context(), req); err != nil {
-		if errors.Is(err, service.ErrApplicantNotFound) {
+		if errors.Is(err, service.ErrNotFound) {
+			slog.Warn("applicant not found for update", "user_id", authCtx.UserID)
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "applicant not found"})
 			return
 		}
 		if errors.Is(err, service.ErrForbidden) {
+			slog.Warn("access denied for update", "user_id", authCtx.UserID)
 			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "access denied"})
 			return
 		}
 		if errors.Is(err, service.ErrInvalidInput) {
+			slog.Warn("invalid input for update", "error", err, "user_id", authCtx.UserID)
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
 			return
 		}
+		slog.Error("failed to update applicant", "error", err, "user_id", authCtx.UserID)
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to update applicant"})
 		return
 	}
 
+	slog.Info("applicant updated successfully", "user_id", authCtx.UserID)
 	c.JSON(http.StatusOK, gin.H{"message": "applicant updated successfully"})
 }
 
@@ -130,6 +152,7 @@ func (h *ApplicantHandler) GetTags(c *gin.Context) {
 	idParam := c.Param("id")
 	applicantID, err := uuid.Parse(idParam)
 	if err != nil {
+		slog.Warn("invalid applicant id for get tags", "id", idParam, "error", err)
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid applicant id"})
 		return
 	}
@@ -147,18 +170,22 @@ func (h *ApplicantHandler) GetTags(c *gin.Context) {
 
 	tags, err := h.applicantService.GetTags(c.Request.Context(), req)
 	if err != nil {
-		if errors.Is(err, service.ErrApplicantNotFound) {
+		if errors.Is(err, service.ErrNotFound) {
+			slog.Warn("applicant not found for get tags", "applicant_id", applicantID)
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "applicant not found"})
 			return
 		}
 		if errors.Is(err, service.ErrForbidden) {
+			slog.Warn("access denied to get tags", "applicant_id", applicantID)
 			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "access denied"})
 			return
 		}
+		slog.Error("failed to get tags", "error", err, "applicant_id", applicantID)
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to get tags"})
 		return
 	}
 
+	slog.Info("tags retrieved successfully", "applicant_id", applicantID, "tags_count", len(tags))
 	c.JSON(http.StatusOK, tagsToResponse(tags))
 }
 
@@ -166,18 +193,21 @@ func (h *ApplicantHandler) SetTags(c *gin.Context) {
 	idParam := c.Param("id")
 	applicantID, err := uuid.Parse(idParam)
 	if err != nil {
+		slog.Warn("invalid applicant id for set tags", "id", idParam, "error", err)
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid applicant id"})
 		return
 	}
 
 	authCtx, err := extractAuthContext(c)
 	if err != nil {
+		slog.Warn("failed to extract auth context for set tags", "error", err)
 		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "unauthorized"})
 		return
 	}
 
 	var reqBody dto.TagsRequest
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		slog.Warn("invalid request body for set tags", "error", err, "user_id", authCtx.UserID)
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid request body"})
 		return
 	}
@@ -189,18 +219,22 @@ func (h *ApplicantHandler) SetTags(c *gin.Context) {
 	}
 
 	if err := h.applicantService.SetTags(c.Request.Context(), req); err != nil {
-		if errors.Is(err, service.ErrApplicantNotFound) {
+		if errors.Is(err, service.ErrNotFound) {
+			slog.Warn("applicant not found for set tags", "applicant_id", applicantID, "user_id", authCtx.UserID)
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "applicant not found"})
 			return
 		}
 		if errors.Is(err, service.ErrForbidden) {
+			slog.Warn("access denied for set tags", "applicant_id", applicantID, "user_id", authCtx.UserID)
 			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "access denied"})
 			return
 		}
+		slog.Error("failed to set tags", "error", err, "applicant_id", applicantID, "user_id", authCtx.UserID)
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to set tags"})
 		return
 	}
 
+	slog.Info("tags set successfully", "applicant_id", applicantID, "user_id", authCtx.UserID, "tags_count", len(reqBody.TagIDs))
 	c.JSON(http.StatusOK, gin.H{"message": "tags set successfully"})
 }
 
@@ -208,18 +242,21 @@ func (h *ApplicantHandler) AddTags(c *gin.Context) {
 	idParam := c.Param("id")
 	applicantID, err := uuid.Parse(idParam)
 	if err != nil {
+		slog.Warn("invalid applicant id for add tags", "id", idParam, "error", err)
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid applicant id"})
 		return
 	}
 
 	authCtx, err := extractAuthContext(c)
 	if err != nil {
+		slog.Warn("failed to extract auth context for add tags", "error", err)
 		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "unauthorized"})
 		return
 	}
 
 	var reqBody dto.TagsRequest
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		slog.Warn("invalid request body for add tags", "error", err, "user_id", authCtx.UserID)
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid request body"})
 		return
 	}
@@ -231,18 +268,22 @@ func (h *ApplicantHandler) AddTags(c *gin.Context) {
 	}
 
 	if err := h.applicantService.AddTags(c.Request.Context(), req); err != nil {
-		if errors.Is(err, service.ErrApplicantNotFound) {
+		if errors.Is(err, service.ErrNotFound) {
+			slog.Warn("applicant not found for add tags", "applicant_id", applicantID, "user_id", authCtx.UserID)
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "applicant not found"})
 			return
 		}
 		if errors.Is(err, service.ErrForbidden) {
+			slog.Warn("access denied for add tags", "applicant_id", applicantID, "user_id", authCtx.UserID)
 			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "access denied"})
 			return
 		}
+		slog.Error("failed to add tags", "error", err, "applicant_id", applicantID, "user_id", authCtx.UserID)
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to add tags"})
 		return
 	}
 
+	slog.Info("tags added successfully", "applicant_id", applicantID, "user_id", authCtx.UserID, "tags_count", len(reqBody.TagIDs))
 	c.JSON(http.StatusOK, gin.H{"message": "tags added successfully"})
 }
 
@@ -250,18 +291,21 @@ func (h *ApplicantHandler) RemoveTags(c *gin.Context) {
 	idParam := c.Param("id")
 	applicantID, err := uuid.Parse(idParam)
 	if err != nil {
+		slog.Warn("invalid applicant id for remove tags", "id", idParam, "error", err)
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid applicant id"})
 		return
 	}
 
 	authCtx, err := extractAuthContext(c)
 	if err != nil {
+		slog.Warn("failed to extract auth context for remove tags", "error", err)
 		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "unauthorized"})
 		return
 	}
 
 	var reqBody dto.TagsRequest
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		slog.Warn("invalid request body for remove tags", "error", err, "user_id", authCtx.UserID)
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid request body"})
 		return
 	}
@@ -273,18 +317,22 @@ func (h *ApplicantHandler) RemoveTags(c *gin.Context) {
 	}
 
 	if err := h.applicantService.RemoveTags(c.Request.Context(), req); err != nil {
-		if errors.Is(err, service.ErrApplicantNotFound) {
+		if errors.Is(err, service.ErrNotFound) {
+			slog.Warn("applicant not found for remove tags", "applicant_id", applicantID, "user_id", authCtx.UserID)
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "applicant not found"})
 			return
 		}
 		if errors.Is(err, service.ErrForbidden) {
+			slog.Warn("access denied for remove tags", "applicant_id", applicantID, "user_id", authCtx.UserID)
 			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "access denied"})
 			return
 		}
+		slog.Error("failed to remove tags", "error", err, "applicant_id", applicantID, "user_id", authCtx.UserID)
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to remove tags"})
 		return
 	}
 
+	slog.Info("tags removed successfully", "applicant_id", applicantID, "user_id", authCtx.UserID, "tags_count", len(reqBody.TagIDs))
 	c.JSON(http.StatusOK, gin.H{"message": "tags removed successfully"})
 }
 

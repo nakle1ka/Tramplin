@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -24,12 +25,14 @@ func NewOpportunityHandler(opportunityService service.OpportunityService) *Oppor
 func (h *OpportunityHandler) Create(c *gin.Context) {
 	var req dto.CreateOpportunityRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		slog.Warn("failed to bind create opportunity request", "error", err)
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
 		return
 	}
 
 	authCtx, err := extractAuthContext(c)
 	if err != nil {
+		slog.Error("auth context extraction failed", "error", err)
 		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: err.Error()})
 		return
 	}
@@ -54,6 +57,7 @@ func (h *OpportunityHandler) Create(c *gin.Context) {
 
 	opportunity, err := h.opportunityService.Create(c.Request.Context(), serviceReq)
 	if err != nil {
+		slog.Error("failed to create opportunity", "error", err, "user_id", authCtx.UserID)
 		switch {
 		case errors.Is(err, service.ErrInvalidOpportunity):
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid opportunity data"})
@@ -67,24 +71,28 @@ func (h *OpportunityHandler) Create(c *gin.Context) {
 		return
 	}
 
+	slog.Info("opportunity created", "id", opportunity.ID, "user_id", authCtx.UserID)
 	c.JSON(http.StatusCreated, h.toOpportunityResponse(opportunity))
 }
 
 func (h *OpportunityHandler) Update(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
+		slog.Warn("invalid opportunity id format", "id", c.Param("id"))
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid opportunity id"})
 		return
 	}
 
 	var req dto.UpdateOpportunityRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		slog.Warn("failed to bind update opportunity request", "error", err, "opportunity_id", id)
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
 		return
 	}
 
 	authCtx, err := extractAuthContext(c)
 	if err != nil {
+		slog.Error("auth context extraction failed", "error", err)
 		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: err.Error()})
 		return
 	}
@@ -109,10 +117,11 @@ func (h *OpportunityHandler) Update(c *gin.Context) {
 
 	opportunity, err := h.opportunityService.Update(c.Request.Context(), serviceReq)
 	if err != nil {
+		slog.Error("failed to update opportunity", "error", err, "opportunity_id", id, "user_id", authCtx.UserID)
 		switch {
 		case errors.Is(err, service.ErrForbidden):
 			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "access denied"})
-		case errors.Is(err, service.ErrOpportunityNotFound):
+		case errors.Is(err, service.ErrNotFound):
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "opportunity not found"})
 		case errors.Is(err, service.ErrExpiredOpportunity):
 			c.JSON(http.StatusConflict, dto.ErrorResponse{Error: "cannot modify expired opportunity"})
@@ -130,24 +139,28 @@ func (h *OpportunityHandler) Update(c *gin.Context) {
 		return
 	}
 
+	slog.Info("opportunity updated", "id", id, "user_id", authCtx.UserID)
 	c.JSON(http.StatusOK, h.toOpportunityResponse(opportunity))
 }
 
 func (h *OpportunityHandler) UpdateModerationStatus(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
+		slog.Warn("invalid opportunity id format", "id", c.Param("id"))
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid opportunity id"})
 		return
 	}
 
 	var req dto.UpdateModerationStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		slog.Warn("failed to bind moderation update request", "error", err, "opportunity_id", id)
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
 		return
 	}
 
 	authCtx, err := extractAuthContext(c)
 	if err != nil {
+		slog.Error("auth context extraction failed", "error", err)
 		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: err.Error()})
 		return
 	}
@@ -159,10 +172,11 @@ func (h *OpportunityHandler) UpdateModerationStatus(c *gin.Context) {
 	}
 
 	if err := h.opportunityService.UpdateModerationStatus(c.Request.Context(), serviceReq); err != nil {
+		slog.Error("failed to update moderation status", "error", err, "opportunity_id", id, "user_id", authCtx.UserID)
 		switch {
 		case errors.Is(err, service.ErrForbidden):
 			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "only curators can update moderation status"})
-		case errors.Is(err, service.ErrOpportunityNotFound):
+		case errors.Is(err, service.ErrNotFound):
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "opportunity not found"})
 		case errors.Is(err, service.ErrInvalidInput):
 			c.Status(http.StatusBadRequest)
@@ -172,12 +186,14 @@ func (h *OpportunityHandler) UpdateModerationStatus(c *gin.Context) {
 		return
 	}
 
+	slog.Info("moderation status updated", "id", id, "status", req.Status, "curator_id", authCtx.UserID)
 	c.JSON(http.StatusOK, gin.H{"status": "updated"})
 }
 
 func (h *OpportunityHandler) GetByID(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
+		slog.Warn("invalid opportunity id format", "id", c.Param("id"))
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid opportunity id"})
 		return
 	}
@@ -197,10 +213,11 @@ func (h *OpportunityHandler) GetByID(c *gin.Context) {
 
 	opportunity, err := h.opportunityService.GetByID(c.Request.Context(), serviceReq)
 	if err != nil {
+		slog.Error("failed to get opportunity by id", "error", err, "opportunity_id", id)
 		switch {
 		case errors.Is(err, service.ErrForbidden):
 			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "access denied"})
-		case errors.Is(err, service.ErrOpportunityNotFound):
+		case errors.Is(err, service.ErrNotFound):
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "opportunity not found"})
 		default:
 			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "internal server error"})
@@ -214,6 +231,7 @@ func (h *OpportunityHandler) GetByID(c *gin.Context) {
 func (h *OpportunityHandler) List(c *gin.Context) {
 	var req dto.ListOpportunitiesRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
+		slog.Warn("failed to bind list query", "error", err)
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
 		return
 	}
@@ -222,6 +240,7 @@ func (h *OpportunityHandler) List(c *gin.Context) {
 	if req.EmployerID != nil {
 		parsed, err := uuid.Parse(*req.EmployerID)
 		if err != nil {
+			slog.Warn("invalid employer id format", "id", *req.EmployerID)
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid employer id"})
 			return
 		}
@@ -230,7 +249,8 @@ func (h *OpportunityHandler) List(c *gin.Context) {
 	if req.CuratorID != nil {
 		parsed, err := uuid.Parse(*req.CuratorID)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid employer id"})
+			slog.Warn("invalid curator id format", "id", *req.CuratorID)
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid curator id"})
 			return
 		}
 		CuratorID = &parsed
@@ -267,6 +287,7 @@ func (h *OpportunityHandler) List(c *gin.Context) {
 
 	opportunities, total, err := h.opportunityService.List(c.Request.Context(), serviceReq)
 	if err != nil {
+		slog.Error("failed to list opportunities", "error", err)
 		switch {
 		case errors.Is(err, service.ErrInvalidInput):
 			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid input"})
@@ -293,12 +314,14 @@ func (h *OpportunityHandler) List(c *gin.Context) {
 func (h *OpportunityHandler) Delete(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
+		slog.Warn("invalid opportunity id format", "id", c.Param("id"))
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid opportunity id"})
 		return
 	}
 
 	authCtx, err := extractAuthContext(c)
 	if err != nil {
+		slog.Error("auth context extraction failed", "error", err)
 		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: err.Error()})
 		return
 	}
@@ -309,10 +332,11 @@ func (h *OpportunityHandler) Delete(c *gin.Context) {
 	}
 
 	if err := h.opportunityService.Delete(c.Request.Context(), serviceReq); err != nil {
+		slog.Error("failed to delete opportunity", "error", err, "opportunity_id", id, "user_id", authCtx.UserID)
 		switch {
 		case errors.Is(err, service.ErrForbidden):
 			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "access denied"})
-		case errors.Is(err, service.ErrOpportunityNotFound):
+		case errors.Is(err, service.ErrNotFound):
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "opportunity not found"})
 		default:
 			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "internal server error"})
@@ -320,24 +344,28 @@ func (h *OpportunityHandler) Delete(c *gin.Context) {
 		return
 	}
 
+	slog.Info("opportunity deleted", "id", id, "user_id", authCtx.UserID)
 	c.JSON(http.StatusNoContent, nil)
 }
 
 func (h *OpportunityHandler) AddTags(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
+		slog.Warn("invalid opportunity id format", "id", c.Param("id"))
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid opportunity id"})
 		return
 	}
 
 	var req dto.AddTagsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		slog.Warn("failed to bind add tags request", "error", err, "opportunity_id", id)
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
 		return
 	}
 
 	authCtx, err := extractAuthContext(c)
 	if err != nil {
+		slog.Error("auth context extraction failed", "error", err)
 		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: err.Error()})
 		return
 	}
@@ -349,10 +377,11 @@ func (h *OpportunityHandler) AddTags(c *gin.Context) {
 	}
 
 	if err := h.opportunityService.AddTags(c.Request.Context(), serviceReq); err != nil {
+		slog.Error("failed to add tags to opportunity", "error", err, "opportunity_id", id)
 		switch {
 		case errors.Is(err, service.ErrForbidden):
 			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "access denied"})
-		case errors.Is(err, service.ErrOpportunityNotFound):
+		case errors.Is(err, service.ErrNotFound):
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "opportunity not found"})
 		default:
 			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "internal server error"})
@@ -360,24 +389,28 @@ func (h *OpportunityHandler) AddTags(c *gin.Context) {
 		return
 	}
 
+	slog.Info("tags added to opportunity", "id", id, "tag_ids", req.TagIDs, "user_id", authCtx.UserID)
 	c.JSON(http.StatusOK, gin.H{"status": "tags added"})
 }
 
 func (h *OpportunityHandler) RemoveTags(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
+		slog.Warn("invalid opportunity id format", "id", c.Param("id"))
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid opportunity id"})
 		return
 	}
 
 	var req dto.RemoveTagsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		slog.Warn("failed to bind remove tags request", "error", err, "opportunity_id", id)
 		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
 		return
 	}
 
 	authCtx, err := extractAuthContext(c)
 	if err != nil {
+		slog.Error("auth context extraction failed", "error", err)
 		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: err.Error()})
 		return
 	}
@@ -389,10 +422,11 @@ func (h *OpportunityHandler) RemoveTags(c *gin.Context) {
 	}
 
 	if err := h.opportunityService.RemoveTags(c.Request.Context(), serviceReq); err != nil {
+		slog.Error("failed to remove tags from opportunity", "error", err, "opportunity_id", id)
 		switch {
 		case errors.Is(err, service.ErrForbidden):
 			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "access denied"})
-		case errors.Is(err, service.ErrOpportunityNotFound):
+		case errors.Is(err, service.ErrNotFound):
 			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "opportunity not found"})
 		default:
 			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "internal server error"})
@@ -400,6 +434,7 @@ func (h *OpportunityHandler) RemoveTags(c *gin.Context) {
 		return
 	}
 
+	slog.Info("tags removed from opportunity", "id", id, "tag_ids", req.TagIDs, "user_id", authCtx.UserID)
 	c.JSON(http.StatusOK, gin.H{"status": "tags removed"})
 }
 

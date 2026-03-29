@@ -46,7 +46,7 @@ func (r *contactRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.C
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrContactNotFound
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (r *contactRepository) Update(ctx context.Context, id uuid.UUID, contact ma
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrContactNotFound
+			return ErrNotFound
 		}
 		return err
 	}
@@ -73,7 +73,7 @@ func (r *contactRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	err := r.getDB(ctx).Delete(&model.Contact{}, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrContactNotFound
+			return ErrNotFound
 		}
 		return err
 	}

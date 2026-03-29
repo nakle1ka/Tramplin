@@ -33,14 +33,14 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil || !req.Role.IsValid() {
 		slog.Error("failed to bind register request", "error", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid request body"})
 		return
 	}
 
 	createDTO, err := mapRegisterRequestToDTO(req)
 	if err != nil {
 		slog.Error("failed to map register request", "error", err, "email", req.Email)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
 		return
 	}
 	createDTO.Auth = authCtx
@@ -50,13 +50,13 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		slog.Error("failed to register user", "error", err, "email", req.Email)
 		switch {
 		case errors.Is(err, gorm.ErrDuplicatedKey):
-			c.JSON(http.StatusConflict, gin.H{"error": "email already exists"})
+			c.JSON(http.StatusConflict, dto.ErrorResponse{Error: "email already exists"})
 		case errors.Is(err, service.ErrInvalidEmployerINN):
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid employer INN"})
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid employer INN"})
 		case errors.Is(err, service.ErrForbidden):
-			c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+			c.JSON(http.StatusForbidden, dto.ErrorResponse{Error: "forbidden"})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "internal server error"})
 		}
 		return
 	}
@@ -78,13 +78,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		slog.Error("failed to bind login request", "error", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid request body"})
 		return
 	}
 
 	if req.Email == "" || req.Password == "" {
 		slog.Warn("missing credentials", "email", req.Email)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "email and password are required"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "email and password are required"})
 		return
 	}
 
@@ -96,9 +96,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		slog.Error("failed to login", "error", err, "email", req.Email)
 		switch {
 		case errors.Is(err, service.ErrInvalidCredentials):
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+			c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "invalid credentials"})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "internal server error"})
 		}
 		return
 	}
@@ -118,7 +118,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 func (h *AuthHandler) Logout(c *gin.Context) {
 	refreshToken, err := c.Cookie("refresh_token")
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"message": "logged out successfully"})
+		c.JSON(http.StatusOK, dto.ErrorResponse{Error: "logged out successfully"})
 		return
 	}
 
@@ -131,14 +131,14 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	h.clearRefreshTokenCookie(c)
 
 	slog.Info("user logged out successfully")
-	c.JSON(http.StatusOK, gin.H{"message": "logged out successfully"})
+	c.JSON(http.StatusOK, dto.ErrorResponse{Error: "logged out successfully"})
 }
 
 func (h *AuthHandler) Refresh(c *gin.Context) {
 	refreshToken, err := c.Cookie("refresh_token")
 	if err != nil {
 		slog.Warn("no refresh token in cookies")
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "refresh token not found"})
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "refresh token not found"})
 		return
 	}
 
@@ -150,11 +150,11 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		h.clearRefreshTokenCookie(c)
 		switch {
 		case errors.Is(err, service.ErrInvalidToken):
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refresh token"})
-		case errors.Is(err, service.ErrUserNotFound):
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
+			c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "invalid refresh token"})
+		case errors.Is(err, service.ErrNotFound):
+			c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "user not found"})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "internal server error"})
 		}
 		return
 	}

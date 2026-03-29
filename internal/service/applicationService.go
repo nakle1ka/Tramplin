@@ -57,8 +57,8 @@ func (s *applicationService) CreateApplication(ctx context.Context, dto CreateAp
 
 	opportunity, err := s.opportnityRepo.GetByID(ctx, dto.OpportunityID)
 	if err != nil {
-		if errors.Is(err, repository.ErrOpportunityNotFound) {
-			return nil, ErrOpportunityNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -97,8 +97,8 @@ func (s *applicationService) UpdateApplicationStatus(ctx context.Context, dto Up
 
 	application, err := s.applicationRepo.GetByID(ctx, dto.ApplicationID)
 	if err != nil {
-		if errors.Is(err, repository.ErrApplicationNotFound) {
-			return ErrApplicationNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrNotFound
 		}
 		return err
 	}
@@ -136,8 +136,8 @@ func (s *applicationService) DeleteApplication(ctx context.Context, dto DeleteAp
 
 	application, err := s.applicationRepo.GetByID(ctx, dto.ApplicationID)
 	if err != nil {
-		if errors.Is(err, repository.ErrApplicationNotFound) {
-			return ErrApplicationNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrNotFound
 		}
 		return err
 	}
@@ -162,7 +162,7 @@ type GetApplicationByIDDTO struct {
 func (s *applicationService) GetApplicationByID(ctx context.Context, dto GetApplicationByIDDTO) (*model.Application, error) {
 	application, err := s.applicationRepo.GetByID(ctx, dto.ApplicationID)
 	if err != nil {
-		return nil, ErrApplicationNotFound
+		return nil, ErrNotFound
 	}
 
 	switch dto.Auth.Role {
@@ -202,8 +202,8 @@ func (s *applicationService) GetApplicationsByOpportunity(ctx context.Context, d
 
 	opportunity, err := s.opportnityRepo.GetByID(ctx, dto.OpportunityID)
 	if err != nil {
-		if errors.Is(err, repository.ErrOpportunityNotFound) {
-			return nil, 0, ErrOpportunityNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, 0, ErrNotFound
 		}
 		return nil, 0, err
 	}
@@ -231,8 +231,8 @@ type GetApplicationsByApplicantDTO struct {
 func (s *applicationService) GetApplicationsByApplicant(ctx context.Context, dto GetApplicationsByApplicantDTO) ([]*model.Application, int64, error) {
 	applicant, err := s.applicantRepo.GetByID(ctx, dto.ApplicantID)
 	if err != nil {
-		if errors.Is(err, repository.ErrApplicantNotFound) {
-			return nil, 0, ErrApplicantNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, 0, ErrNotFound
 		}
 		return nil, 0, err
 	}

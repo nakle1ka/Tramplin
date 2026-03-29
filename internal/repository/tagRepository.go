@@ -64,7 +64,7 @@ func (r *tagRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Tag, 
 	err := r.getDB(ctx).First(&tag, "id = ?", id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrTagNotFound
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (r *tagRepository) GetByName(ctx context.Context, name string) (*model.Tag,
 	err := r.getDB(ctx).Where("name = ?", name).First(&tag).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrTagNotFound
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func (r *tagRepository) Delete(ctx context.Context, id uuid.UUID) error {
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return ErrTagNotFound
+		return ErrNotFound
 	}
 	return nil
 }
@@ -170,7 +170,7 @@ func (r *tagRepository) DeleteBatch(ctx context.Context, ids []uuid.UUID) error 
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return ErrTagNotFound
+		return ErrNotFound
 	}
 	return nil
 }
@@ -180,7 +180,7 @@ func (r *tagRepository) GetOrCreate(ctx context.Context, name string) (*model.Ta
 	if err == nil {
 		return tag, nil
 	}
-	if !errors.Is(err, ErrTagNotFound) {
+	if !errors.Is(err, ErrNotFound) {
 		return nil, err
 	}
 

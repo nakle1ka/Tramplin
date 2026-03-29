@@ -43,7 +43,7 @@ func (r *curatorRepository) GetByID(ctx context.Context, id uuid.UUID) (*Curator
 	err := r.getDB(ctx).First(&curator, "id = ?", id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrCuratorNotFound
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (r *curatorRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (
 		First(&curator, "user_id = ?", userID).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrCuratorNotFound
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (r *curatorRepository) Update(ctx context.Context, id uuid.UUID, curator ma
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrCuratorNotFound
+			return ErrNotFound
 		}
 		return err
 	}

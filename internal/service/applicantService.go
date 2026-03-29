@@ -40,8 +40,8 @@ type GetMeApplicantRequest struct {
 func (s *applicantService) GetMe(ctx context.Context, req GetMeApplicantRequest) (*model.Applicant, error) {
 	applicant, err := s.repo.GetByUserID(ctx, req.Auth.UserID)
 	if err != nil {
-		if errors.Is(err, repository.ErrApplicantNotFound) {
-			return nil, ErrApplicantNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to get applicant: %w", err)
 	}
@@ -57,8 +57,8 @@ type GetApplicantByIDRequest struct {
 func (s *applicantService) GetByID(ctx context.Context, req GetApplicantByIDRequest) (*model.Applicant, error) {
 	applicant, err := s.repo.GetByID(ctx, req.ID)
 	if err != nil {
-		if errors.Is(err, repository.ErrApplicantNotFound) {
-			return nil, ErrApplicantNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to get applicant: %w", err)
 	}
@@ -81,8 +81,8 @@ type UpdateApplicantRequest struct {
 func (s *applicantService) Update(ctx context.Context, req UpdateApplicantRequest) error {
 	applicant, err := s.repo.GetByUserID(ctx, req.Auth.UserID)
 	if err != nil {
-		if errors.Is(err, repository.ErrApplicantNotFound) {
-			return ErrApplicantNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrNotFound
 		}
 		return fmt.Errorf("failed to get applicant: %w", err)
 	}
@@ -144,8 +144,8 @@ func (s *applicantService) Update(ctx context.Context, req UpdateApplicantReques
 	}
 
 	if err := s.repo.Update(ctx, applicant.ID, updates); err != nil {
-		if errors.Is(err, repository.ErrApplicantNotFound) {
-			return ErrApplicantNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrNotFound
 		}
 		return fmt.Errorf("failed to update applicant: %w", err)
 	}
@@ -161,8 +161,8 @@ type GetApplicantTagsRequest struct {
 func (s *applicantService) GetTags(ctx context.Context, req GetApplicantTagsRequest) ([]*model.Tag, error) {
 	applicant, err := s.repo.GetByID(ctx, req.ApplicantID)
 	if err != nil {
-		if errors.Is(err, repository.ErrApplicantNotFound) {
-			return nil, ErrApplicantNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to get applicant: %w", err)
 	}
@@ -178,8 +178,8 @@ func (s *applicantService) GetTags(ctx context.Context, req GetApplicantTagsRequ
 
 	tags, err := s.repo.GetTags(ctx, req.ApplicantID)
 	if err != nil {
-		if errors.Is(err, repository.ErrApplicantNotFound) {
-			return nil, ErrApplicantNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to get tags: %w", err)
 	}
@@ -196,8 +196,8 @@ type SetApplicantTagsRequest struct {
 func (s *applicantService) SetTags(ctx context.Context, req SetApplicantTagsRequest) error {
 	applicant, err := s.repo.GetByID(ctx, req.ApplicantID)
 	if err != nil {
-		if errors.Is(err, repository.ErrApplicantNotFound) {
-			return ErrApplicantNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrNotFound
 		}
 		return fmt.Errorf("failed to get applicant: %w", err)
 	}
@@ -207,8 +207,8 @@ func (s *applicantService) SetTags(ctx context.Context, req SetApplicantTagsRequ
 	}
 
 	if err := s.repo.SetTags(ctx, req.ApplicantID, req.TagIDs); err != nil {
-		if errors.Is(err, repository.ErrApplicantNotFound) {
-			return ErrApplicantNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrNotFound
 		}
 		return fmt.Errorf("failed to set tags: %w", err)
 	}
@@ -229,8 +229,8 @@ func (s *applicantService) AddTags(ctx context.Context, req AddApplicantTagsRequ
 
 	applicant, err := s.repo.GetByID(ctx, req.ApplicantID)
 	if err != nil {
-		if errors.Is(err, repository.ErrApplicantNotFound) {
-			return ErrApplicantNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrNotFound
 		}
 		return fmt.Errorf("failed to get applicant: %w", err)
 	}
@@ -240,8 +240,8 @@ func (s *applicantService) AddTags(ctx context.Context, req AddApplicantTagsRequ
 	}
 
 	if err := s.repo.AddTags(ctx, req.ApplicantID, req.TagIDs); err != nil {
-		if errors.Is(err, repository.ErrApplicantNotFound) {
-			return ErrApplicantNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrNotFound
 		}
 		return fmt.Errorf("failed to add tags: %w", err)
 	}
@@ -262,8 +262,8 @@ func (s *applicantService) RemoveTags(ctx context.Context, req RemoveApplicantTa
 
 	applicant, err := s.repo.GetByID(ctx, req.ApplicantID)
 	if err != nil {
-		if errors.Is(err, repository.ErrApplicantNotFound) {
-			return ErrApplicantNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrNotFound
 		}
 		return fmt.Errorf("failed to get applicant: %w", err)
 	}
@@ -273,8 +273,8 @@ func (s *applicantService) RemoveTags(ctx context.Context, req RemoveApplicantTa
 	}
 
 	if err := s.repo.RemoveTags(ctx, req.ApplicantID, req.TagIDs); err != nil {
-		if errors.Is(err, repository.ErrApplicantNotFound) {
-			return ErrApplicantNotFound
+		if errors.Is(err, repository.ErrNotFound) {
+			return ErrNotFound
 		}
 		return fmt.Errorf("failed to remove tags: %w", err)
 	}

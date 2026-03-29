@@ -39,7 +39,7 @@ func (r *employerRepository) Create(ctx context.Context, employer *Employer) err
 	err := r.getDB(ctx).Create(employer).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrEmployerNotFound
+			return ErrNotFound
 		}
 		return err
 	}
@@ -53,7 +53,7 @@ func (r *employerRepository) GetByID(ctx context.Context, id uuid.UUID) (*Employ
 		First(&employer, "id = ?", id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrEmployerNotFound
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (r *employerRepository) GetByUserID(ctx context.Context, userID uuid.UUID) 
 		First(&employer, "user_id = ?", userID).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrEmployerNotFound
+			return nil, ErrNotFound
 		}
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (r *employerRepository) Update(ctx context.Context, id uuid.UUID, employer 
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrEmployerNotFound
+			return ErrNotFound
 		}
 		return err
 	}
@@ -96,7 +96,7 @@ func (r *employerRepository) Delete(ctx context.Context, id uuid.UUID) error {
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return ErrEmployerNotFound
+			return ErrNotFound
 		}
 		return err
 	}
