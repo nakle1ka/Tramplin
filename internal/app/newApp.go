@@ -31,17 +31,17 @@ func (a *App) Run() error {
 
 	applicantRepo := repository.NewApplicantRepository(a.db)
 	employerRepo := repository.NewEmployerRepository(a.db)
-	curatotRepo := repository.NewCuratorRepository(a.db)
+	curatorRepo := repository.NewCuratorRepository(a.db)
 	userRepo := repository.NewUserRepository(a.db)
 	opportunityRepo := repository.NewOpportunityRepository(a.db)
 	tagRepo := repository.NewTagRepository(a.db)
-	applicationrepo := repository.NewApplicationRepository(a.db)
+	applicationRepo := repository.NewApplicationRepository(a.db)
 	cacheRepo := repository.NewCacheRepository(a.cache)
 
 	authSrv := service.NewAuthService(
 		userRepo,
 		applicantRepo,
-		curatotRepo,
+		curatorRepo,
 		employerRepo,
 		cacheRepo,
 		transactionManager,
@@ -54,14 +54,15 @@ func (a *App) Run() error {
 	)
 	applicantSrv := service.NewApplicantService(applicantRepo)
 	employerSrv := service.NewEmployerService(employerRepo)
+	curatorSrv := service.NewCuratorService(curatorRepo)
 	opportunitySrv := service.NewOpportunityService(
 		opportunityRepo,
 		tagRepo,
 		employerRepo,
-		curatotRepo,
+		curatorRepo,
 	)
 	applicationSrv := service.NewApplicationService(
-		applicationrepo,
+		applicationRepo,
 		opportunityRepo,
 		applicantRepo,
 		employerRepo,
@@ -70,6 +71,7 @@ func (a *App) Run() error {
 	authHnd := handler.NewAuthHandler(authSrv)
 	applicantHnd := handler.NewApplicantHandler(applicantSrv)
 	employerHnd := handler.NewEmployerHandler(employerSrv)
+	curatorHnd := handler.NewCuratorHandler(curatorSrv)
 	opportunityHnd := handler.NewOpportunityHandler(opportunitySrv)
 	applicationHnd := handler.NewApplicationHandler(applicationSrv)
 
@@ -86,6 +88,7 @@ func (a *App) Run() error {
 	routes.SetupAuthRoutes(v1, authHnd)
 	routes.SetupApplicantRoutes(v1, protectedV1, applicantHnd)
 	routes.SetupEmployerRoutes(v1, protectedV1, employerHnd)
+	routes.SetupCuratorRoutes(protectedV1, curatorHnd)
 	routes.SetupOpportunityRoutes(v1, protectedV1, opportunityHnd)
 	routes.SetupApplicationRoutes(protectedV1, applicationHnd)
 

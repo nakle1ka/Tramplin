@@ -23,17 +23,17 @@ func NewAuthHandler(authService service.AuthService) *AuthHandler {
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
-	var req dto.RegisterRequest
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		slog.Error("failed to bind register request", "error", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
-		return
+	var authCtx *service.AuthContext
+	extracted, err := extractAuthContext(c)
+	if err == nil {
+		authCtx = &extracted
 	}
 
-	if err := validateRegisterRequest(req); err != nil {
-		slog.Warn("invalid register request", "error", err, "email", req.Email)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var req dto.RegisterRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil || !req.Role.IsValid() {
+		slog.Error("failed to bind register request", "error", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
 
@@ -43,6 +43,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	createDTO.Auth = authCtx
 
 	resp, err := h.authService.Register(c.Request.Context(), createDTO)
 	if err != nil {
@@ -52,6 +53,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"error": "email already exists"})
 		case errors.Is(err, service.ErrInvalidEmployerINN):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid employer INN"})
+		case errors.Is(err, service.ErrForbidden):
+			c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
@@ -85,7 +88,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.authService.Login(c.Request.Context(), req.Email, req.Password)
+	resp, err := h.authService.Login(c.Request.Context(), service.LoginRequest{
+		Email:    req.Email,
+		Password: req.Password,
+	})
 	if err != nil {
 		slog.Error("failed to login", "error", err, "email", req.Email)
 		switch {
@@ -112,12 +118,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 func (h *AuthHandler) Logout(c *gin.Context) {
 	refreshToken, err := c.Cookie("refresh_token")
 	if err != nil {
-		slog.Warn("no refresh token in cookies")
 		c.JSON(http.StatusOK, gin.H{"message": "logged out successfully"})
 		return
 	}
 
-	if err := h.authService.Logout(c.Request.Context(), refreshToken); err != nil {
+	if err := h.authService.Logout(c.Request.Context(), service.LogoutRequest{
+		RefreshToken: refreshToken,
+	}); err != nil {
 		slog.Error("failed to logout", "error", err)
 	}
 
@@ -135,7 +142,9 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.authService.Refresh(c.Request.Context(), refreshToken)
+	resp, err := h.authService.Refresh(c.Request.Context(), service.RefreshRequest{
+		RefreshToken: refreshToken,
+	})
 	if err != nil {
 		slog.Error("failed to refresh token", "error", err)
 		h.clearRefreshTokenCookie(c)
@@ -178,24 +187,8 @@ func (h *AuthHandler) clearRefreshTokenCookie(c *gin.Context) {
 	c.SetCookie("refresh_token", "", -1, "/", "", true, true)
 }
 
-func validateRegisterRequest(req dto.RegisterRequest) error {
-	if req.Email == "" {
-		return errors.New("email is required")
-	}
-	if req.Password == "" {
-		return errors.New("password is required")
-	}
-	if len(req.Password) < 6 {
-		return errors.New("password must be at least 6 characters")
-	}
-	if !req.Role.IsValid() {
-		return errors.New("invalid role")
-	}
-	return nil
-}
-
-func mapRegisterRequestToDTO(req dto.RegisterRequest) (service.CreateAccountDTO, error) {
-	dto := service.CreateAccountDTO{
+func mapRegisterRequestToDTO(req dto.RegisterRequest) (service.RegisterRequest, error) {
+	dto := service.RegisterRequest{
 		Email:    req.Email,
 		Password: req.Password,
 		Role:     req.Role,
@@ -204,7 +197,7 @@ func mapRegisterRequestToDTO(req dto.RegisterRequest) (service.CreateAccountDTO,
 	switch req.Role {
 	case model.RoleApplicant:
 		if req.Applicant == nil {
-			return service.CreateAccountDTO{}, errors.New("applicant data is required")
+			return service.RegisterRequest{}, errors.New("applicant data is required")
 		}
 		dto.Applicant = &model.Applicant{
 			FirstName:  req.Applicant.FirstName,
@@ -213,7 +206,7 @@ func mapRegisterRequestToDTO(req dto.RegisterRequest) (service.CreateAccountDTO,
 		}
 	case model.RoleEmployer:
 		if req.Employer == nil {
-			return service.CreateAccountDTO{}, errors.New("employer data is required")
+			return service.RegisterRequest{}, errors.New("employer data is required")
 		}
 		dto.Employer = &model.Employer{
 			CompanyName: req.Employer.CompanyName,

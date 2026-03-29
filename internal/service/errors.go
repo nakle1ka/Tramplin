@@ -13,6 +13,7 @@ var (
 
 	ErrUserNotFound        = errors.New("user not found")
 	ErrApplicantNotFound   = errors.New("applicant not found")
+	ErrCuratorNotFound     = errors.New("curator not found")
 	ErrApplicationNotFound = errors.New("application not found")
 	ErrEmailExists         = errors.New("user with this email already exists")
 

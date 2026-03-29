@@ -15,25 +15,16 @@ import (
 )
 
 type AuthService interface {
-	Register(ctx context.Context, dto CreateAccountDTO) (AuthResult, error)
-	Login(ctx context.Context, email, password string) (AuthResult, error)
-	Logout(ctx context.Context, refreshToken string) error
-	Refresh(ctx context.Context, refreshToken string) (AuthResult, error)
+	Register(ctx context.Context, req RegisterRequest) (AuthResponse, error)
+	Login(ctx context.Context, req LoginRequest) (AuthResponse, error)
+	Logout(ctx context.Context, req LogoutRequest) error
+	Refresh(ctx context.Context, req RefreshRequest) (AuthResponse, error)
 
 	GetRefreshExpires() time.Duration
 	GetAccessExpires() time.Duration
 }
 
-type CreateAccountDTO struct {
-	Email    string
-	Password string
-	Role     model.Role
-
-	Employer  *model.Employer
-	Applicant *model.Applicant
-}
-
-type AuthResult struct {
+type AuthResponse struct {
 	AccessToken  string
 	RefreshToken string
 	UserID       uuid.UUID
@@ -57,35 +48,58 @@ type authService struct {
 	accessExp  time.Duration
 }
 
-func (s *authService) Register(ctx context.Context, dto CreateAccountDTO) (AuthResult, error) {
-	if dto.Role == model.RoleEmployer {
-		valid, err := validateEmployerINN(dto.Employer.INN)
+type RegisterRequest struct {
+	Auth *AuthContext
+
+	Email    string
+	Password string
+	Role     model.Role
+
+	Employer  *model.Employer
+	Applicant *model.Applicant
+}
+
+func (s *authService) Register(ctx context.Context, req RegisterRequest) (AuthResponse, error) {
+	switch req.Role {
+	case model.RoleEmployer:
+		valid, err := validateEmployerINN(req.Employer.INN)
 		if !valid || err != nil {
-			return AuthResult{}, ErrInvalidEmployerINN
+			return AuthResponse{}, ErrInvalidEmployerINN
+		}
+	case model.RoleCurator:
+		if req.Auth == nil || req.Auth.Role != model.RoleCurator {
+			return AuthResponse{}, ErrForbidden
+		}
+		curator, err := s.curatorRepo.GetByUserID(ctx, req.Auth.UserID)
+		if err != nil {
+			return AuthResponse{}, err
+		}
+		if !curator.IsSuperAdmin {
+			return AuthResponse{}, ErrForbidden
 		}
 	}
 
-	var response AuthResult
+	var response AuthResponse
 
 	err := s.txManager.Wrap(ctx, func(txCtx context.Context) error {
-		hashedPassword, err := s.passwordHasher.Hash([]byte(dto.Password))
+		hashedPassword, err := s.passwordHasher.Hash([]byte(req.Password))
 		if err != nil {
 			return fmt.Errorf("hash password: %w", err)
 		}
 
 		user := &model.User{
 			ID:           uuid.New(),
-			Email:        dto.Email,
+			Email:        req.Email,
 			PasswordHash: string(hashedPassword),
-			Role:         dto.Role,
-			IsVerified:   false,
+			Role:         req.Role,
+			IsVerified:   req.Role == model.RoleCurator,
 		}
 
 		if err := s.userRepo.Create(txCtx, user); err != nil {
 			return err
 		}
 
-		if err := s.createProfile(txCtx, user.ID, dto); err != nil {
+		if err := s.createProfile(txCtx, user.ID, req); err != nil {
 			return err
 		}
 
@@ -94,7 +108,7 @@ func (s *authService) Register(ctx context.Context, dto CreateAccountDTO) (AuthR
 			return err
 		}
 
-		response = AuthResult{
+		response = AuthResponse{
 			AccessToken:  accessToken,
 			RefreshToken: refreshToken,
 			UserID:       user.ID,
@@ -108,51 +122,64 @@ func (s *authService) Register(ctx context.Context, dto CreateAccountDTO) (AuthR
 	return response, err
 }
 
-func (s *authService) createProfile(ctx context.Context, userID uuid.UUID, dto CreateAccountDTO) error {
-	switch dto.Role {
+func (s *authService) createProfile(ctx context.Context, userID uuid.UUID, req RegisterRequest) error {
+	switch req.Role {
 	case model.RoleApplicant:
-		if dto.Applicant == nil {
+		if req.Applicant == nil {
 			return fmt.Errorf("applicant profile is required")
 		}
 
-		dto.Applicant.ID = uuid.New()
-		dto.Applicant.UserID = userID
-		return s.applicantRepo.Create(ctx, dto.Applicant)
+		req.Applicant.ID = uuid.New()
+		req.Applicant.UserID = userID
+		return s.applicantRepo.Create(ctx, req.Applicant)
 
 	case model.RoleEmployer:
-		if dto.Employer == nil {
+		if req.Employer == nil {
 			return fmt.Errorf("employer profile is required")
 		}
 
-		dto.Employer.ID = uuid.New()
-		dto.Employer.UserID = userID
-		dto.Employer.VerifiedStatus = model.StatusPending
-		return s.employerRepo.Create(ctx, dto.Employer)
+		req.Employer.ID = uuid.New()
+		req.Employer.UserID = userID
+		req.Employer.VerifiedStatus = model.StatusPending
+		return s.employerRepo.Create(ctx, req.Employer)
+
+	case model.RoleCurator:
+		curator := &model.Curator{
+			ID:           uuid.New(),
+			UserID:       userID,
+			IsSuperAdmin: false,
+		}
+		return s.curatorRepo.Create(ctx, curator)
 
 	default:
-		return fmt.Errorf("unknown role: %v", dto.Role)
+		return fmt.Errorf("unknown role: %v", req.Role)
 	}
 }
 
-func (s *authService) Login(ctx context.Context, email string, password string) (AuthResult, error) {
-	user, err := s.userRepo.GetByEmail(ctx, email)
+type LoginRequest struct {
+	Email    string
+	Password string
+}
+
+func (s *authService) Login(ctx context.Context, req LoginRequest) (AuthResponse, error) {
+	user, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
-		return AuthResult{}, fmt.Errorf("get user: %w", err)
+		return AuthResponse{}, fmt.Errorf("get user: %w", err)
 	}
 	if user == nil {
-		return AuthResult{}, ErrInvalidCredentials
+		return AuthResponse{}, ErrInvalidCredentials
 	}
 
-	if !s.passwordHasher.Verify([]byte(password), []byte(user.PasswordHash)) {
-		return AuthResult{}, ErrInvalidCredentials
+	if !s.passwordHasher.Verify([]byte(req.Password), []byte(user.PasswordHash)) {
+		return AuthResponse{}, ErrInvalidCredentials
 	}
 
 	accessToken, refreshToken, err := s.issueSession(user.ID, user.Role)
 	if err != nil {
-		return AuthResult{}, err
+		return AuthResponse{}, err
 	}
 
-	return AuthResult{
+	return AuthResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		UserID:       user.ID,
@@ -161,8 +188,12 @@ func (s *authService) Login(ctx context.Context, email string, password string) 
 	}, nil
 }
 
-func (s *authService) Logout(ctx context.Context, refreshToken string) error {
-	claims, err := s.tokenManager.ValidateToken(refreshToken)
+type LogoutRequest struct {
+	RefreshToken string
+}
+
+func (s *authService) Logout(ctx context.Context, req LogoutRequest) error {
+	claims, err := s.tokenManager.ValidateToken(req.RefreshToken)
 	if err != nil {
 		return ErrInvalidToken
 	}
@@ -176,41 +207,45 @@ func (s *authService) Logout(ctx context.Context, refreshToken string) error {
 	return s.cacheRepo.Delete(key)
 }
 
-func (s *authService) Refresh(ctx context.Context, refreshToken string) (AuthResult, error) {
-	claims, err := s.tokenManager.ValidateToken(refreshToken)
+type RefreshRequest struct {
+	RefreshToken string
+}
+
+func (s *authService) Refresh(ctx context.Context, req RefreshRequest) (AuthResponse, error) {
+	claims, err := s.tokenManager.ValidateToken(req.RefreshToken)
 	if err != nil {
-		return AuthResult{}, ErrInvalidToken
+		return AuthResponse{}, ErrInvalidToken
 	}
 
 	userID, err := uuid.Parse(claims.Subject)
 	if err != nil {
-		return AuthResult{}, fmt.Errorf("parse user id: %w", err)
+		return AuthResponse{}, fmt.Errorf("parse user id: %w", err)
 	}
 
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		return AuthResult{}, fmt.Errorf("get user: %w", err)
+		return AuthResponse{}, fmt.Errorf("get user: %w", err)
 	}
 	if user == nil {
-		return AuthResult{}, ErrUserNotFound
+		return AuthResponse{}, ErrUserNotFound
 	}
 
 	key := fmt.Sprintf("session:%v:%v", userID, claims.TokenId)
 	storedHashBase64, err := s.cacheRepo.Get(key)
 	if err != nil {
-		return AuthResult{}, fmt.Errorf("get session: %w", err)
+		return AuthResponse{}, fmt.Errorf("get session: %w", err)
 	}
 
 	storedHash, err := base64.StdEncoding.DecodeString(storedHashBase64)
 	if err != nil {
-		return AuthResult{}, fmt.Errorf("decode session: %w", err)
+		return AuthResponse{}, fmt.Errorf("decode session: %w", err)
 	}
 
-	if !s.tokenHasher.Verify([]byte(refreshToken), []byte(storedHash)) {
-		return AuthResult{}, ErrInvalidToken
+	if !s.tokenHasher.Verify([]byte(req.RefreshToken), []byte(storedHash)) {
+		return AuthResponse{}, ErrInvalidToken
 	}
 
-	var response AuthResult
+	var response AuthResponse
 	err = s.txManager.Wrap(ctx, func(txCtx context.Context) error {
 		_ = s.cacheRepo.Delete(key)
 
@@ -219,7 +254,7 @@ func (s *authService) Refresh(ctx context.Context, refreshToken string) (AuthRes
 			return err
 		}
 
-		response = AuthResult{
+		response = AuthResponse{
 			AccessToken:  accessToken,
 			RefreshToken: newRefreshToken,
 			UserID:       user.ID,
