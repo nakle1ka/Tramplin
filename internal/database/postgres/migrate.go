@@ -16,5 +16,6 @@ func Migrate(db *gorm.DB) error {
 		&model.Application{},
 		&model.Contact{},
 		&model.Recomendation{},
+		&model.Favorites{},
 	)
 }

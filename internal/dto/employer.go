@@ -33,8 +33,8 @@ type EmployerResponse struct {
 type ListEmployersRequest struct {
 	CompanyName    *string                   `form:"company_name" json:"company_name"`
 	VerifiedStatus *model.VerificationStatus `form:"verified_status" json:"verified_status"`
-	Limit          int                       `form:"limit" json:"limit" binding:"min:0,max:100"`
-	Offset         int                       `form:"offset" json:"offset" binding:"min:0"`
+	Limit          int                       `form:"limit" json:"limit" binding:"min=0,max=100"`
+	Offset         int                       `form:"offset" json:"offset" binding:"min=0"`
 }
 
 type ListEmployersResponse struct {

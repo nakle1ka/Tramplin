@@ -38,6 +38,7 @@ func (a *App) Run() error {
 	applicationRepo := repository.NewApplicationRepository(a.db)
 	contactRepo := repository.NewContactRepository(a.db)
 	recomendationRepo := repository.NewRecomendationRepository(a.db)
+	favoritesRepo := repository.NewFavoritesRepository(a.db)
 	cacheRepo := repository.NewCacheRepository(a.cache)
 
 	authSrv := service.NewAuthService(
@@ -61,6 +62,7 @@ func (a *App) Run() error {
 	applicationSrv := service.NewApplicationService(applicationRepo, opportunityRepo, applicantRepo, employerRepo)
 	contactSrv := service.NewContactService(contactRepo, applicantRepo)
 	recomendationSrv := service.NewRecomendationService(recomendationRepo, applicantRepo, opportunityRepo, contactRepo)
+	favoritesSrv := service.NewFavoritesService(favoritesRepo, applicantRepo, opportunityRepo)
 
 	authHnd := handler.NewAuthHandler(authSrv)
 	applicantHnd := handler.NewApplicantHandler(applicantSrv)
@@ -70,6 +72,7 @@ func (a *App) Run() error {
 	applicationHnd := handler.NewApplicationHandler(applicationSrv)
 	contactHnd := handler.NewContactHandler(contactSrv)
 	recomendationHnd := handler.NewRecommendationHandler(recomendationSrv)
+	favoriteshnd := handler.NewFavoritesHandler(favoritesSrv)
 
 	router := gin.New()
 	router.Use(gin.Recovery())
@@ -89,6 +92,7 @@ func (a *App) Run() error {
 	routes.SetupApplicationRoutes(protectedV1, applicationHnd)
 	routes.SetupContactRoutes(protectedV1, contactHnd)
 	routes.SetupRecomendationRoutes(protectedV1, recomendationHnd)
+	routes.SetupFavoritesRoutes(protectedV1, favoriteshnd)
 
 	addr := fmt.Sprintf(":%v", a.cfg.App.Port)
 	return router.Run(addr)
