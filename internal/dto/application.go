@@ -12,7 +12,7 @@ type ApplicationResponse struct {
 	OpportunityID uuid.UUID                   `json:"opportunity_id"`
 	Opportunity   *OpportunityApplicationInfo `json:"opportunity,omitempty"`
 	ApplicantID   uuid.UUID                   `json:"applicant_id"`
-	Applicant     *ApplicantInfo              `json:"applicant,omitempty"`
+	Applicant     *ApplicationApplicantInfo   `json:"applicant,omitempty"`
 	Status        model.AcceptStatus          `json:"status"`
 	CreatedAt     time.Time                   `json:"created_at"`
 	UpdatedAt     time.Time                   `json:"updated_at"`
@@ -25,7 +25,7 @@ type OpportunityApplicationInfo struct {
 	LocationCity string    `json:"location_city"`
 }
 
-type ApplicantInfo struct {
+type ApplicationApplicantInfo struct {
 	ID        uuid.UUID `json:"id"`
 	FirstName string    `json:"first_name"`
 	LastName  string    `json:"last_name"`

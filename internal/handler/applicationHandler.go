@@ -204,7 +204,7 @@ func (h *ApplicationHandler) GetApplicationByID(c *gin.Context) {
 			Description:  app.Opportunity.Description,
 			LocationCity: app.Opportunity.LocationCity,
 		},
-		Applicant: &dto.ApplicantInfo{
+		Applicant: &dto.ApplicationApplicantInfo{
 			ID:        app.Applicant.ID,
 			FirstName: app.Applicant.FirstName,
 			LastName:  app.Applicant.LastName,
@@ -273,7 +273,7 @@ func (h *ApplicationHandler) GetApplications(c *gin.Context) {
 					Description:  app.Opportunity.Description,
 					LocationCity: app.Opportunity.LocationCity,
 				},
-				Applicant: &dto.ApplicantInfo{
+				Applicant: &dto.ApplicationApplicantInfo{
 					ID:        app.Applicant.ID,
 					FirstName: app.Applicant.FirstName,
 					LastName:  app.Applicant.LastName,
@@ -336,7 +336,7 @@ func (h *ApplicationHandler) GetApplications(c *gin.Context) {
 					Description:  app.Opportunity.Description,
 					LocationCity: app.Opportunity.LocationCity,
 				},
-				Applicant: &dto.ApplicantInfo{
+				Applicant: &dto.ApplicationApplicantInfo{
 					ID:        app.Applicant.ID,
 					FirstName: app.Applicant.FirstName,
 					LastName:  app.Applicant.LastName,

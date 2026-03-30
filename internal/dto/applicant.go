@@ -23,6 +23,13 @@ type ApplicantResponse struct {
 	UpdatedAt      time.Time     `json:"updated_at"`
 }
 
+type ApplicantInfo struct {
+	ID         uuid.UUID `json:"id"`
+	FirstName  string    `json:"first_name"`
+	SecondName string    `json:"second_name"`
+	LastName   string    `json:"last_name"`
+}
+
 type UpdateApplicantRequest struct {
 	FirstName      *string        `json:"first_name,omitempty"`
 	SecondName     *string        `json:"second_name,omitempty"`
@@ -40,8 +47,8 @@ type ListApplicantsRequest struct {
 }
 
 type ListApplicantsResponse struct {
-	Applicants []ApplicantResponse `json:"applicants"`
-	Total      int64               `json:"total"`
+	Applicants []ApplicantInfo `json:"applicants"`
+	Total      int64           `json:"total"`
 }
 
 type TagsRequest struct {

@@ -86,6 +86,17 @@ func (s *applicantService) GetByID(ctx context.Context, req GetApplicantByIDRequ
 		return nil, fmt.Errorf("failed to get applicant: %w", err)
 	}
 
+	if applicant.PrivacySetting == model.PrivacyPrivate && (req.Auth == nil || req.Auth.UserID != applicant.UserID) {
+		applicant = &model.Applicant{
+			ID:         applicant.ID,
+			UserID:     applicant.UserID,
+			User:       applicant.User,
+			FirstName:  applicant.FirstName,
+			SecondName: applicant.SecondName,
+			LastName:   applicant.LastName,
+		}
+	}
+
 	return applicant, nil
 }
 

@@ -121,9 +121,14 @@ func (h *ApplicantHandler) List(c *gin.Context) {
 		return
 	}
 
-	applicantResponses := make([]dto.ApplicantResponse, len(applicants))
+	applicantResponses := make([]dto.ApplicantInfo, len(applicants))
 	for i, applicant := range applicants {
-		applicantResponses[i] = toApplicantResponse(applicant, applicant.Tags)
+		applicantResponses[i] = dto.ApplicantInfo{
+			ID:         applicant.ID,
+			FirstName:  applicant.FirstName,
+			SecondName: applicant.SecondName,
+			LastName:   applicant.LastName,
+		}
 	}
 
 	response := dto.ListApplicantsResponse{
