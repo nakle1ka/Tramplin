@@ -21,6 +21,8 @@ type ApplicantService interface {
 	SetTags(ctx context.Context, req SetApplicantTagsRequest) error
 	AddTags(ctx context.Context, req AddApplicantTagsRequest) error
 	RemoveTags(ctx context.Context, req RemoveApplicantTagsRequest) error
+
+	List(ctx context.Context, req ListApplicantsRequest) ([]*model.Applicant, error)
 }
 
 type applicantService struct {
@@ -47,6 +49,27 @@ func (s *applicantService) GetMe(ctx context.Context, req GetMeApplicantRequest)
 	}
 
 	return applicant, nil
+}
+
+type ListApplicantsRequest struct {
+	Limit  int
+	Offset int
+}
+
+func (s *applicantService) List(ctx context.Context, req ListApplicantsRequest) ([]*model.Applicant, error) {
+	limit := req.Limit
+	offset := req.Offset
+
+	if limit <= 0 || limit > 100 || offset < 0 {
+		return nil, ErrInvalidInput
+	}
+
+	applicants, err := s.repo.List(ctx, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list applicants: %w", err)
+	}
+
+	return applicants, nil
 }
 
 type GetApplicantByIDRequest struct {

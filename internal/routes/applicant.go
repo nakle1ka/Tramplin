@@ -14,6 +14,7 @@ func SetupApplicantRoutes(
 	protectedApplicant := protectedRouter.Group("/applicants")
 
 	{
+		applicant.GET("/", hnd.List)
 		applicant.GET("/:id", hnd.GetByID)
 		protectedApplicant.GET("/me", hnd.GetMe)
 		protectedApplicant.PATCH("/me", hnd.Update)

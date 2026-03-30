@@ -96,6 +96,49 @@ func (h *ApplicantHandler) GetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, toApplicantResponse(applicant, nil))
 }
 
+func (h *ApplicantHandler) List(c *gin.Context) {
+	var req dto.ListApplicantsRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		slog.Warn("invalid query parameters for list applicants", "error", err)
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid query parameters"})
+		return
+	}
+
+	serviceReq := service.ListApplicantsRequest{
+		Limit:  req.Limit,
+		Offset: req.Offset,
+	}
+
+	applicants, err := h.applicantService.List(c.Request.Context(), serviceReq)
+	if err != nil {
+		if errors.Is(err, service.ErrInvalidInput) {
+			slog.Warn("invalid input for list applicants", "error", err)
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "invalid limit or offset"})
+			return
+		}
+		slog.Error("failed to list applicants", "error", err)
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "failed to list applicants"})
+		return
+	}
+
+	applicantResponses := make([]dto.ApplicantResponse, len(applicants))
+	for i, applicant := range applicants {
+		applicantResponses[i] = toApplicantResponse(applicant, applicant.Tags)
+	}
+
+	response := dto.ListApplicantsResponse{
+		Applicants: applicantResponses,
+		Total:      int64(len(applicantResponses)),
+	}
+
+	slog.Info("applicants listed successfully",
+		"limit", req.Limit,
+		"offset", req.Offset,
+		"count", len(applicantResponses))
+
+	c.JSON(http.StatusOK, response)
+}
+
 func (h *ApplicantHandler) Update(c *gin.Context) {
 	authCtx, err := extractAuthContext(c)
 	if err != nil {

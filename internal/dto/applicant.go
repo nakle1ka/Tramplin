@@ -34,6 +34,16 @@ type UpdateApplicantRequest struct {
 	PrivacySetting *model.Privacy `json:"privacy_setting,omitempty"`
 }
 
+type ListApplicantsRequest struct {
+	Limit  int `form:"limit" binding:"omitempty,min=1,max=100"`
+	Offset int `form:"offset" binding:"omitempty,min=0"`
+}
+
+type ListApplicantsResponse struct {
+	Applicants []ApplicantResponse `json:"applicants"`
+	Total      int64               `json:"total"`
+}
+
 type TagsRequest struct {
 	TagIDs []uuid.UUID `json:"tag_ids"`
 }

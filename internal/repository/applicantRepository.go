@@ -11,10 +11,12 @@ import (
 
 type ApplicantRepository interface {
 	Create(ctx context.Context, applicant *model.Applicant) error
-	GetByID(ctx context.Context, id uuid.UUID) (*model.Applicant, error)
-	GetByUserID(ctx context.Context, userID uuid.UUID) (*model.Applicant, error)
 	Update(ctx context.Context, id uuid.UUID, applicant map[string]any) error
 	Delete(ctx context.Context, id uuid.UUID) error
+
+	List(ctx context.Context, limit, offset int) ([]*model.Applicant, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*model.Applicant, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID) (*model.Applicant, error)
 
 	AddTags(ctx context.Context, applicantID uuid.UUID, tagIDs []uuid.UUID) error
 	RemoveTags(ctx context.Context, applicantID uuid.UUID, tagIDs []uuid.UUID) error
@@ -39,6 +41,24 @@ func (r *applicantRepository) getDB(ctx context.Context) *gorm.DB {
 
 func (r *applicantRepository) Create(ctx context.Context, applicant *model.Applicant) error {
 	return r.getDB(ctx).Create(applicant).Error
+}
+
+func (r *applicantRepository) List(ctx context.Context, limit, offset int) ([]*model.Applicant, error) {
+	var applicants []*model.Applicant
+
+	err := r.getDB(ctx).
+		Preload("Tags").
+		Preload("User").
+		Limit(limit).
+		Offset(offset).
+		Order("created_at DESC").
+		Find(&applicants).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return applicants, nil
 }
 
 func (r *applicantRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Applicant, error) {
