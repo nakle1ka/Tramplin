@@ -11,7 +11,7 @@ func SetupContactRoutes(
 ) {
 	protectedContacts := protectedRouter.Group("/contacts")
 	{
-		protectedContacts.POST("/", hnd.Create)
+		protectedContacts.POST("", hnd.Create)
 		protectedContacts.GET("/friends", hnd.ListFriends)
 		protectedContacts.GET("/sent", hnd.ListSentRequests)
 		protectedContacts.GET("/received", hnd.ListReceivedRequests)

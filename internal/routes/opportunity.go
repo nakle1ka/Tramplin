@@ -14,10 +14,10 @@ func SetupOpportunityRoutes(
 	protectedOpportunities := protectedRouter.Group("/opportunities")
 
 	{
-		opportunities.GET("/", hnd.List)
+		opportunities.GET("", hnd.List)
 		opportunities.GET("/:id", hnd.GetByID)
 
-		protectedOpportunities.POST("/", hnd.Create)
+		protectedOpportunities.POST("", hnd.Create)
 		protectedOpportunities.PATCH("/:id", hnd.Update)
 		protectedOpportunities.DELETE("/:id", hnd.Delete)
 

@@ -12,8 +12,8 @@ func SetupFavoritesRoutes(
 	protectedFavorites := protectedRouter.Group("/favorites")
 
 	{
-		protectedFavorites.GET("/", hnd.List)
-		protectedFavorites.POST("/", hnd.Create)
+		protectedFavorites.GET("", hnd.List)
+		protectedFavorites.POST("", hnd.Create)
 		protectedFavorites.DELETE("/:id", hnd.Delete)
 	}
 }

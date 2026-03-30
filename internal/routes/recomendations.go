@@ -11,7 +11,7 @@ func SetupRecomendationRoutes(
 ) {
 	protectedRecomendations := protectedRouter.Group("/recomendations")
 	{
-		protectedRecomendations.POST("/", hnd.Create)
+		protectedRecomendations.POST("", hnd.Create)
 		protectedRecomendations.GET("/my", hnd.GetMyRecomendations)
 		protectedRecomendations.DELETE("/:id", hnd.Create)
 	}

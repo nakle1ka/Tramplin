@@ -75,8 +75,8 @@ func (a *App) Run() error {
 	favoriteshnd := handler.NewFavoritesHandler(favoritesSrv)
 
 	router := gin.New()
-	router.Use(gin.Recovery())
 	router.Use(middleware.CORS())
+	router.Use(gin.Recovery())
 
 	v1 := router.Group("/api/v1")
 	v1.Use(middleware.ParseJWT(tokenManager))

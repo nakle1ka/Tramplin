@@ -13,8 +13,8 @@ func SetupApplicationRoutes(
 
 	{
 		protectedApplications.GET("/:id", hnd.GetApplicationByID)
-		protectedApplications.GET("/", hnd.GetApplications)
-		protectedApplications.POST("/", hnd.CreateApplication)
+		protectedApplications.GET("", hnd.GetApplications)
+		protectedApplications.POST("", hnd.CreateApplication)
 		protectedApplications.PUT("/:id/status", hnd.UpdateApplicationStatus)
 		protectedApplications.DELETE("/:id", hnd.DeleteApplication)
 	}
