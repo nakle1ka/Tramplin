@@ -37,6 +37,7 @@ func (a *App) Run() error {
 	tagRepo := repository.NewTagRepository(a.db)
 	applicationRepo := repository.NewApplicationRepository(a.db)
 	contactRepo := repository.NewContactRepository(a.db)
+	recomendationRepo := repository.NewRecomendationRepository(a.db)
 	cacheRepo := repository.NewCacheRepository(a.cache)
 
 	authSrv := service.NewAuthService(
@@ -56,19 +57,10 @@ func (a *App) Run() error {
 	applicantSrv := service.NewApplicantService(applicantRepo)
 	employerSrv := service.NewEmployerService(employerRepo)
 	curatorSrv := service.NewCuratorService(curatorRepo)
-	opportunitySrv := service.NewOpportunityService(
-		opportunityRepo,
-		tagRepo,
-		employerRepo,
-		curatorRepo,
-	)
-	applicationSrv := service.NewApplicationService(
-		applicationRepo,
-		opportunityRepo,
-		applicantRepo,
-		employerRepo,
-	)
+	opportunitySrv := service.NewOpportunityService(opportunityRepo, tagRepo, employerRepo, curatorRepo)
+	applicationSrv := service.NewApplicationService(applicationRepo, opportunityRepo, applicantRepo, employerRepo)
 	contactSrv := service.NewContactService(contactRepo, applicantRepo)
+	recomendationSrv := service.NewRecomendationService(recomendationRepo, applicantRepo, opportunityRepo, contactRepo)
 
 	authHnd := handler.NewAuthHandler(authSrv)
 	applicantHnd := handler.NewApplicantHandler(applicantSrv)
@@ -77,6 +69,7 @@ func (a *App) Run() error {
 	opportunityHnd := handler.NewOpportunityHandler(opportunitySrv)
 	applicationHnd := handler.NewApplicationHandler(applicationSrv)
 	contactHnd := handler.NewContactHandler(contactSrv)
+	recomendationHnd := handler.NewRecommendationHandler(recomendationSrv)
 
 	router := gin.New()
 	router.Use(gin.Recovery())
@@ -95,6 +88,7 @@ func (a *App) Run() error {
 	routes.SetupOpportunityRoutes(v1, protectedV1, opportunityHnd)
 	routes.SetupApplicationRoutes(protectedV1, applicationHnd)
 	routes.SetupContactRoutes(protectedV1, contactHnd)
+	routes.SetupRecomendationRoutes(protectedV1, recomendationHnd)
 
 	addr := fmt.Sprintf(":%v", a.cfg.App.Port)
 	return router.Run(addr)

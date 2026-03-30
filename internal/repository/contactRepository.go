@@ -12,7 +12,8 @@ import (
 type ContactRepository interface {
 	Create(ctx context.Context, contact *model.Contact) error
 	GetByID(ctx context.Context, id uuid.UUID) (*model.Contact, error)
-	List(ctx context.Context, opts ListOptions) ([]model.Contact, error)
+	GetByApplicantsIDs(ctx context.Context, id1, id2 uuid.UUID) (*model.Contact, error)
+	List(ctx context.Context, opts ContantListOptions) ([]model.Contact, error)
 	Update(ctx context.Context, id uuid.UUID, contact map[string]any) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -53,6 +54,27 @@ func (r *contactRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.C
 	return &contact, nil
 }
 
+func (r *contactRepository) GetByApplicantsIDs(ctx context.Context, id1 uuid.UUID, id2 uuid.UUID) (*model.Contact, error) {
+	var contact model.Contact
+	err := r.getDB(ctx).
+		Preload("Sender").
+		Preload("Recipient").
+		Where(
+			"((sender_id = ? AND recipient_id = ?) OR (sender_id = ? AND recipient_id = ?)) AND status = ?",
+			id1, id2, id2, id1,
+			model.ContactStatusAccepted,
+		).
+		First(&contact).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return &contact, nil
+}
+
 func (r *contactRepository) Update(ctx context.Context, id uuid.UUID, contact map[string]any) error {
 	err := r.getDB(ctx).
 		Model(&model.Contact{}).
@@ -70,7 +92,7 @@ func (r *contactRepository) Update(ctx context.Context, id uuid.UUID, contact ma
 }
 
 func (r *contactRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	err := r.getDB(ctx).Delete(&model.Contact{}, id).Error
+	err := r.getDB(ctx).Delete(&model.Contact{}, "id = ?", id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ErrNotFound
@@ -80,7 +102,7 @@ func (r *contactRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-type ListOptions struct {
+type ContantListOptions struct {
 	ApplicantID *uuid.UUID
 	Status      *model.ContactStatus
 	ContactID   *uuid.UUID
@@ -90,7 +112,7 @@ type ListOptions struct {
 	Offset      int
 }
 
-func (r *contactRepository) List(ctx context.Context, opts ListOptions) ([]model.Contact, error) {
+func (r *contactRepository) List(ctx context.Context, opts ContantListOptions) ([]model.Contact, error) {
 	var contacts []model.Contact
 
 	query := r.getDB(ctx).Preload("Sender").Preload("Recipient")

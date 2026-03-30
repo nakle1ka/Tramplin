@@ -8,17 +8,17 @@ import (
 )
 
 type ApplicationResponse struct {
-	ID            uuid.UUID          `json:"id"`
-	OpportunityID uuid.UUID          `json:"opportunity_id"`
-	Opportunity   *OpportunityInfo   `json:"opportunity,omitempty"`
-	ApplicantID   uuid.UUID          `json:"applicant_id"`
-	Applicant     *ApplicantInfo     `json:"applicant,omitempty"`
-	Status        model.AcceptStatus `json:"status"`
-	CreatedAt     time.Time          `json:"created_at"`
-	UpdatedAt     time.Time          `json:"updated_at"`
+	ID            uuid.UUID                   `json:"id"`
+	OpportunityID uuid.UUID                   `json:"opportunity_id"`
+	Opportunity   *OpportunityApplicationInfo `json:"opportunity,omitempty"`
+	ApplicantID   uuid.UUID                   `json:"applicant_id"`
+	Applicant     *ApplicantInfo              `json:"applicant,omitempty"`
+	Status        model.AcceptStatus          `json:"status"`
+	CreatedAt     time.Time                   `json:"created_at"`
+	UpdatedAt     time.Time                   `json:"updated_at"`
 }
 
-type OpportunityInfo struct {
+type OpportunityApplicationInfo struct {
 	ID           uuid.UUID `json:"id"`
 	Title        string    `json:"title"`
 	Description  string    `json:"description"`

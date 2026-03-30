@@ -9,10 +9,10 @@ import (
 type Contact struct {
 	ID uuid.UUID `gorm:"primaryKey"`
 
-	SenderID uuid.UUID `gorm:"index; not null"`
+	SenderID uuid.UUID `gorm:"index; uniqueIndex:contact_applicant; not null; column:sender_id"`
 	Sender   Applicant `gorm:"foreignKey:SenderID; references:ID"`
 
-	RecipientID uuid.UUID `gorm:"index; not null"`
+	RecipientID uuid.UUID `gorm:"index; uniqueIndex:contact_applicant; not null; column:recipient_id"`
 	Recipient   Applicant `gorm:"foreignKey:RecipientID; references:ID"`
 
 	Status ContactStatus `gorm:"index; not null"`

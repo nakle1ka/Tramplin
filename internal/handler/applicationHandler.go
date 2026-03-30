@@ -198,7 +198,7 @@ func (h *ApplicationHandler) GetApplicationByID(c *gin.Context) {
 		Status:        app.Status,
 		CreatedAt:     app.CreatedAt,
 		UpdatedAt:     app.UpdatedAt,
-		Opportunity: &dto.OpportunityInfo{
+		Opportunity: &dto.OpportunityApplicationInfo{
 			ID:           app.OpportunityID,
 			Title:        app.Opportunity.Title,
 			Description:  app.Opportunity.Description,
@@ -267,7 +267,7 @@ func (h *ApplicationHandler) GetApplications(c *gin.Context) {
 				Status:        app.Status,
 				CreatedAt:     app.CreatedAt,
 				UpdatedAt:     app.UpdatedAt,
-				Opportunity: &dto.OpportunityInfo{
+				Opportunity: &dto.OpportunityApplicationInfo{
 					ID:           app.OpportunityID,
 					Title:        app.Opportunity.Title,
 					Description:  app.Opportunity.Description,
@@ -330,7 +330,7 @@ func (h *ApplicationHandler) GetApplications(c *gin.Context) {
 				Status:        app.Status,
 				CreatedAt:     app.CreatedAt,
 				UpdatedAt:     app.UpdatedAt,
-				Opportunity: &dto.OpportunityInfo{
+				Opportunity: &dto.OpportunityApplicationInfo{
 					ID:           app.OpportunityID,
 					Title:        app.Opportunity.Title,
 					Description:  app.Opportunity.Description,

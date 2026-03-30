@@ -89,7 +89,7 @@ func (s *contactService) ListFriends(ctx context.Context, dto ListFriendsDTO) ([
 	}
 
 	status := model.ContactStatusAccepted
-	opts := repository.ListOptions{
+	opts := repository.ContantListOptions{
 		ApplicantID: &applicant.ID,
 		Status:      &status,
 		Limit:       dto.Limit,
@@ -116,7 +116,7 @@ func (s *contactService) ListSentRequests(ctx context.Context, dto ListSentReque
 	}
 
 	status := model.ContactStatusPending
-	opts := repository.ListOptions{
+	opts := repository.ContantListOptions{
 		SenderID: &applicant.ID,
 		Status:   &status,
 		Limit:    dto.Limit,
@@ -143,7 +143,7 @@ func (s *contactService) ListReceivedRequests(ctx context.Context, dto ListRecei
 	}
 
 	status := model.ContactStatusPending
-	opts := repository.ListOptions{
+	opts := repository.ContantListOptions{
 		RecipientID: &applicant.ID,
 		Status:      &status,
 		Limit:       dto.Limit,
